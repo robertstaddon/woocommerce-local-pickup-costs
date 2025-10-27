@@ -3,7 +3,7 @@
  * Plugin Name: WooCommerce Local Pickup Costs
  * Plugin URI: https://github.com/your-username/woocommerce-local-pickup-costs
  * Description: Add customizable costs for individual local pickup locations and enable URL-based pre-selection.
- * Version: 1.0.0
+ * Version: 1.0.1
  * Author: Abundant Designs
  * Author URI: https://abundantdesigns.com
  * Text Domain: woocommerce-local-pickup-costs
