@@ -5,6 +5,23 @@ All notable changes to the WooCommerce Local Pickup Costs plugin will be documen
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2025-01-XX
+
+### Added
+- WooCommerce Checkout Blocks support via `woocommerce_store_api_checkout_update_order_from_request` hook
+- Blocks-compatible cost override system for pickup locations
+- Order meta tracking for pickup location index and original cost
+
+### Changed
+- Completely rewrote cost handler to use Store API filters instead of `woocommerce_package_rates`
+- Primary focus on Checkout Blocks compatibility
+- Maintains classic checkout fallback for backwards compatibility
+
+### Technical
+- Uses `woocommerce_store_api_checkout_update_order_from_request` filter for Blocks checkout
+- Modifies order shipping total directly before finalization
+- Stores pickup location index as order meta for reference
+
 ## [1.0.8] - 2025-01-XX
 
 ### Fixed

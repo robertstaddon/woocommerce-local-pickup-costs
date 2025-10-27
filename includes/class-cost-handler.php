@@ -2,7 +2,7 @@
 /**
  * Cost Handler Class
  *
- * Handles cost override logic for local pickup locations
+ * Handles cost override logic for local pickup locations in WooCommerce Blocks
  *
  * @package WC_Local_Pickup_Costs
  */
@@ -46,17 +46,120 @@ class WC_LPC_Cost_Handler {
 	 * Initialize hooks
 	 */
 	private function init_hooks() {
-		add_filter( 'woocommerce_package_rates', array( $this, 'modify_local_pickup_cost' ), 10, 2 );
+		// Hook for WooCommerce Blocks checkout
+		add_filter( 'woocommerce_store_api_checkout_update_order_from_request', array( $this, 'apply_custom_pickup_cost' ), 10, 3 );
+		
+		// Fallback for classic checkout
+		add_filter( 'woocommerce_package_rates', array( $this, 'modify_local_pickup_cost_classic' ), 10, 2 );
 	}
 
 	/**
-	 * Modify local pickup cost based on location-specific settings
+	 * Apply custom pickup cost for Checkout Blocks
+	 *
+	 * @param object $order Order object.
+	 * @param object $request Request object from Store API.
+	 * @param object $order_controller Order controller.
+	 * @return object Modified order.
+	 */
+	public function apply_custom_pickup_cost( $order, $request, $order_controller ) {
+		// DEBUG: Log the entire request to see what data we have
+		if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+			error_log( 'WC LPC - Request data: ' . print_r( $request, true ) );
+			error_log( 'WC LPC - Order shipping method: ' . print_r( $order->get_shipping_method(), true ) );
+		}
+
+		// Get saved location costs
+		$location_costs = get_option( 'wc_lpc_location_costs', array() );
+
+		if ( empty( $location_costs ) ) {
+			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+				error_log( 'WC LPC - No location costs saved' );
+			}
+			return $order;
+		}
+
+		// Check if local pickup is selected - check multiple ways
+		$chosen_shipping_method = null;
+		
+		if ( isset( $request->shipping_method ) ) {
+			$chosen_shipping_method = $request->shipping_method;
+		} elseif ( isset( $request->shipping_rate ) ) {
+			$chosen_shipping_method = $request->shipping_rate;
+		} elseif ( $order->get_shipping_method() ) {
+			$chosen_shipping_method = $order->get_shipping_method();
+		}
+		
+		if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+			error_log( 'WC LPC - Chosen shipping method: ' . print_r( $chosen_shipping_method, true ) );
+		}
+		
+		if ( empty( $chosen_shipping_method ) || ( is_string( $chosen_shipping_method ) && strpos( $chosen_shipping_method, 'local_pickup' ) === false ) ) {
+			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+				error_log( 'WC LPC - Not local pickup or empty method' );
+			}
+			return $order;
+		}
+
+		// Get the selected pickup location from various possible sources
+		$selected_pickup_location = null;
+		
+		// Try different ways to get the pickup location index
+		if ( isset( $request->extensions ) && is_array( $request->extensions ) ) {
+			if ( isset( $request->extensions['pickup_location'] ) ) {
+				$selected_pickup_location = $request->extensions['pickup_location'];
+			}
+		}
+		
+		// Also check if it's in the request data directly
+		if ( null === $selected_pickup_location && isset( $request->pickup_location ) ) {
+			$selected_pickup_location = $request->pickup_location;
+		}
+		
+		// Check order meta
+		if ( null === $selected_pickup_location && $order->get_meta( 'pickup_location' ) ) {
+			$selected_pickup_location = $order->get_meta( 'pickup_location' );
+		}
+
+		if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+			error_log( 'WC LPC - Selected pickup location: ' . print_r( $selected_pickup_location, true ) );
+			error_log( 'WC LPC - Location costs: ' . print_r( $location_costs, true ) );
+		}
+
+		// If we found a location and have a custom cost, apply it
+		if ( null !== $selected_pickup_location && isset( $location_costs[ $selected_pickup_location ] ) && $location_costs[ $selected_pickup_location ] !== '' ) {
+			$custom_cost = floatval( $location_costs[ $selected_pickup_location ] );
+			
+			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+				error_log( 'WC LPC - Applying custom cost: ' . $custom_cost );
+			}
+			
+			// Update the order shipping total
+			$order->set_shipping_total( $custom_cost );
+			
+			// Save location index as order meta for reference
+			$order->update_meta_data( 'wc_lpc_pickup_location_index', $selected_pickup_location );
+			$order->update_meta_data( 'wc_lpc_original_pickup_cost', $order->get_shipping_total( 'edit' ) );
+			
+			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+				error_log( 'WC LPC - Order shipping total updated to: ' . $order->get_shipping_total() );
+			}
+		} else {
+			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+				error_log( 'WC LPC - No custom cost applied' );
+			}
+		}
+
+		return $order;
+	}
+
+	/**
+	 * Modify local pickup cost for classic checkout (fallback)
 	 *
 	 * @param array $rates Array of shipping rates.
 	 * @param array $package Package data.
 	 * @return array Modified rates.
 	 */
-	public function modify_local_pickup_cost( $rates, $package ) {
+	public function modify_local_pickup_cost_classic( $rates, $package ) {
 		if ( ! is_array( $rates ) || empty( $rates ) ) {
 			return $rates;
 		}
@@ -68,7 +171,7 @@ class WC_LPC_Cost_Handler {
 			return $rates;
 		}
 
-		// Get pickup locations to map instance to index
+		// Get pickup locations data
 		$pickup_locations = get_option( 'pickup_location_pickup_locations', array() );
 
 		// Loop through all rates
@@ -78,31 +181,13 @@ class WC_LPC_Cost_Handler {
 				continue;
 			}
 
-			// Check if the rate has selected_pickup_location in its meta_data
-			$selected_location_index = null;
-			
-			if ( property_exists( $rate, 'meta_data' ) && is_array( $rate->meta_data ) ) {
-				// Check if the location index is stored in meta_data
-				foreach ( $rate->meta_data as $meta ) {
-					if ( isset( $meta->key ) && 'selected_pickup_location' === $meta->key ) {
-						$selected_location_index = $meta->value;
-						break;
-					}
-				}
-			}
-
-			// If no location index in meta, try to get it from the rate ID or instance
-			if ( null === $selected_location_index ) {
-				// Check if rate has a pickup location index in its settings
-				// This would be set when a specific location is selected
-				$selected_location_index = $this->get_location_index_from_rate( $rate_id, $rate );
-			}
+			// Extract location index from rate ID
+			// Format: local_pickup:instance_id:location_index
+			$selected_location_index = $this->get_location_index_from_rate_id( $rate_id );
 
 			// If we found a location index, apply the custom cost
 			if ( null !== $selected_location_index && isset( $location_costs[ $selected_location_index ] ) && $location_costs[ $selected_location_index ] !== '' ) {
 				$custom_cost = floatval( $location_costs[ $selected_location_index ] );
-
-				// Set the new cost
 				$rate->set_cost( $custom_cost );
 			}
 		}
@@ -111,33 +196,22 @@ class WC_LPC_Cost_Handler {
 	}
 
 	/**
-	 * Get location index from rate
+	 * Get location index from rate ID
 	 *
 	 * @param string $rate_id Rate ID.
-	 * @param object $rate Rate object.
 	 * @return int|null Location index or null.
 	 */
-	private function get_location_index_from_rate( $rate_id, $rate ) {
-		// This will be implemented based on how WooCommerce stores selected location
-		// For now, we'll check the session for the selected location
-		if ( WC()->session ) {
-			$selected_location = WC()->session->get( 'chosen_shipping_methods', array() );
-			
-			// The selected pickup location index might be stored elsewhere
-			// Check if we can determine it from the rate
-			
-			// Try to extract from rate ID format if it includes location info
-			// Rate format might be "pickup_location:0" or similar
-			if ( strpos( $rate_id, 'pickup_location' ) !== false ) {
-				$parts = explode( ':', $rate_id );
-				if ( isset( $parts[2] ) && is_numeric( $parts[2] ) ) {
-					return intval( $parts[2] );
-				}
-			}
+	private function get_location_index_from_rate_id( $rate_id ) {
+		// Rate format is typically something like "local_pickup:instance_id"
+		// We need to extract the location index if it's embedded
+		$parts = explode( ':', $rate_id );
+		
+		// The location index might be in the rate ID format
+		if ( count( $parts ) >= 3 && is_numeric( $parts[2] ) ) {
+			return intval( $parts[2] );
 		}
 
 		return null;
 	}
-
 }
 
