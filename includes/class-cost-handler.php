@@ -63,11 +63,30 @@ class WC_LPC_Cost_Handler {
 	public function apply_custom_pickup_cost( $order, $request ) {
 		// DEBUG: Log specific data to avoid memory issues
 		if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-			// Log only specific properties to avoid memory exhaustion
+			// Log request params
 			$request_array = $request->get_json_params();
 			error_log( 'WC LPC - Shipping method: ' . ( isset( $request_array['shipping_method'] ) ? print_r( $request_array['shipping_method'], true ) : 'not set' ) );
 			error_log( 'WC LPC - Extensions: ' . ( isset( $request_array['extensions'] ) ? print_r( $request_array['extensions'], true ) : 'not set' ) );
+			error_log( 'WC LPC - All request keys: ' . print_r( array_keys( $request_array ), true ) );
+			
+			// Log order shipping data
 			error_log( 'WC LPC - Order shipping method: ' . print_r( $order->get_shipping_method(), true ) );
+			
+			// Log shipping items details
+			$shipping_items = $order->get_items( 'shipping' );
+			error_log( 'WC LPC - Number of shipping items: ' . count( $shipping_items ) );
+			
+			foreach ( $shipping_items as $item_id => $item ) {
+				error_log( 'WC LPC - Shipping Item ID: ' . $item_id );
+				error_log( 'WC LPC - Method ID: ' . $item->get_method_id() );
+				error_log( 'WC LPC - Method Title: ' . $item->get_method_title() );
+				error_log( 'WC LPC - Total: ' . $item->get_total() );
+				error_log( 'WC LPC - All Item Meta: ' . print_r( $item->get_meta_data(), true ) );
+				error_log( 'WC LPC - All Item Data: ' . print_r( $item->get_data(), true ) );
+			}
+			
+			// Log all available request methods
+			error_log( 'WC LPC - Request methods: ' . print_r( get_class_methods( $request ), true ) );
 		}
 
 		// Get saved location costs
