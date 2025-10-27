@@ -162,28 +162,13 @@ class WC_LPC_Admin_Settings {
 						$instance_id = $method->instance_id;
 						$method_title = $method->get_instance_option( 'title' ) ? $method->get_instance_option( 'title' ) : $method->method_title;
 						
-						// Get pickup locations if this method has multiple locations
-						$pickup_locations = $method->get_instance_option( 'pickup_locations' );
-						
-						if ( is_array( $pickup_locations ) && ! empty( $pickup_locations ) ) {
-							// Multiple pickup locations stored in settings
-							foreach ( $pickup_locations as $loc_id => $loc_data ) {
-								$locations[] = array(
-									'instance_id' => $instance_id,
-									'location_id' => $loc_id,
-									'title'       => isset( $loc_data['name'] ) ? $loc_data['name'] : sprintf( '%s - Location %s', $method_title, $loc_id ),
-									'zone_id'     => $zone_data['id'],
-								);
-							}
-						} else {
-							// Single local pickup method without multiple locations
-							$locations[] = array(
-								'instance_id' => $instance_id,
-								'location_id' => $instance_id,
-								'title'       => $method_title,
-								'zone_id'     => $zone_data['id'],
-							);
-						}
+						// Each instance is a separate location
+						$locations[] = array(
+							'instance_id' => $instance_id,
+							'location_id' => $instance_id,
+							'title'       => $method_title,
+							'zone_id'     => $zone_data['id'],
+						);
 					}
 				}
 			}
@@ -200,28 +185,13 @@ class WC_LPC_Admin_Settings {
 					$instance_id = $method->instance_id;
 					$method_title = $method->get_instance_option( 'title' ) ? $method->get_instance_option( 'title' ) : $method->method_title;
 					
-					// Get pickup locations if this method has multiple locations
-					$pickup_locations = $method->get_instance_option( 'pickup_locations' );
-					
-					if ( is_array( $pickup_locations ) && ! empty( $pickup_locations ) ) {
-						// Multiple pickup locations stored in settings
-						foreach ( $pickup_locations as $loc_id => $loc_data ) {
-							$locations[] = array(
-								'instance_id' => $instance_id,
-								'location_id' => $loc_id,
-								'title'       => isset( $loc_data['name'] ) ? $loc_data['name'] : sprintf( '%s - Location %s', $method_title, $loc_id ),
-								'zone_id'     => 0,
-							);
-						}
-					} else {
-						// Single local pickup method
-						$locations[] = array(
-							'instance_id' => $instance_id,
-							'location_id' => $instance_id,
-							'title'       => $method_title,
-							'zone_id'     => 0,
-						);
-					}
+					// Each instance is a separate location
+					$locations[] = array(
+						'instance_id' => $instance_id,
+						'location_id' => $instance_id,
+						'title'       => $method_title,
+						'zone_id'     => 0,
+					);
 				}
 			}
 		}
