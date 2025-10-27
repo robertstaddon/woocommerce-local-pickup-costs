@@ -104,21 +104,24 @@ class WC_LPC_Admin_Settings {
 					<?php foreach ( $pickup_locations as $location ) : ?>
 						<?php
 						$instance_id = $location['instance_id'];
-						$location_id = $location['id'];
+						$location_id = isset( $location['location_id'] ) ? $location['location_id'] : $instance_id;
 						$location_name = $location['title'];
-						$current_cost = isset( $location_costs[ $instance_id ] ) ? $location_costs[ $instance_id ] : '';
+						
+						// Use location_id as the key for storing costs
+						$cost_key = $location_id;
+						$current_cost = isset( $location_costs[ $cost_key ] ) ? $location_costs[ $cost_key ] : '';
 						?>
 						<tr>
 							<th scope="row">
-								<label for="wc_lpc_location_cost_<?php echo esc_attr( $instance_id ); ?>">
+								<label for="wc_lpc_location_cost_<?php echo esc_attr( $cost_key ); ?>">
 									<?php echo esc_html( $location_name ); ?>
 								</label>
 							</th>
 							<td>
 								<input 
 									type="text" 
-									id="wc_lpc_location_cost_<?php echo esc_attr( $instance_id ); ?>" 
-									name="wc_lpc_location_costs[<?php echo esc_attr( $instance_id ); ?>]" 
+									id="wc_lpc_location_cost_<?php echo esc_attr( $cost_key ); ?>" 
+									name="wc_lpc_location_costs[<?php echo esc_attr( $cost_key ); ?>]" 
 									value="<?php echo esc_attr( $current_cost ); ?>" 
 									placeholder="<?php esc_attr_e( 'Use global cost', 'woocommerce-local-pickup-costs' ); ?>"
 									class="regular-text"
@@ -126,7 +129,7 @@ class WC_LPC_Admin_Settings {
 								<p class="description">
 									<?php esc_html_e( 'Enter a cost (e.g., 5.00) or leave blank to use the global cost. Set to 0 to make it free.', 'woocommerce-local-pickup-costs' ); ?>
 								</p>
-								<input type="hidden" name="wc_lpc_location_ids[]" value="<?php echo esc_attr( $instance_id ); ?>" />
+								<input type="hidden" name="wc_lpc_location_ids[]" value="<?php echo esc_attr( $cost_key ); ?>" />
 							</td>
 						</tr>
 					<?php endforeach; ?>
@@ -154,13 +157,33 @@ class WC_LPC_Admin_Settings {
 		foreach ( $zones as $zone_data ) {
 			if ( isset( $zone_data['shipping_methods'] ) ) {
 				foreach ( $zone_data['shipping_methods'] as $method ) {
-					if ( $method instanceof WC_Shipping_Local_Pickup ) {
-						$locations[] = array(
-							'instance_id' => $method->instance_id,
-							'id'          => $method->get_instance_option( 'instance_id' ),
-							'title'       => $method->get_instance_option( 'title' ) ? $method->get_instance_option( 'title' ) : $method->method_title,
-							'zone_id'     => $zone_data['id'],
-						);
+					// Check if this is a local pickup method by method_id
+					if ( isset( $method->id ) && 'local_pickup' === $method->id ) {
+						$instance_id = $method->instance_id;
+						$method_title = $method->get_instance_option( 'title' ) ? $method->get_instance_option( 'title' ) : $method->method_title;
+						
+						// Get pickup locations if this method has multiple locations
+						$pickup_locations = $method->get_instance_option( 'pickup_locations' );
+						
+						if ( is_array( $pickup_locations ) && ! empty( $pickup_locations ) ) {
+							// Multiple pickup locations stored in settings
+							foreach ( $pickup_locations as $loc_id => $loc_data ) {
+								$locations[] = array(
+									'instance_id' => $instance_id,
+									'location_id' => $loc_id,
+									'title'       => isset( $loc_data['name'] ) ? $loc_data['name'] : sprintf( '%s - Location %s', $method_title, $loc_id ),
+									'zone_id'     => $zone_data['id'],
+								);
+							}
+						} else {
+							// Single local pickup method without multiple locations
+							$locations[] = array(
+								'instance_id' => $instance_id,
+								'location_id' => $instance_id,
+								'title'       => $method_title,
+								'zone_id'     => $zone_data['id'],
+							);
+						}
 					}
 				}
 			}
@@ -173,13 +196,32 @@ class WC_LPC_Admin_Settings {
 			$methods = $worldwide_zone->get_shipping_methods();
 
 			foreach ( $methods as $method ) {
-				if ( $method instanceof WC_Shipping_Local_Pickup ) {
-					$locations[] = array(
-						'instance_id' => $method->instance_id,
-						'id'          => $method->get_instance_option( 'instance_id' ),
-						'title'       => $method->get_instance_option( 'title' ) ? $method->get_instance_option( 'title' ) : $method->method_title,
-						'zone_id'     => 0,
-					);
+				if ( isset( $method->id ) && 'local_pickup' === $method->id ) {
+					$instance_id = $method->instance_id;
+					$method_title = $method->get_instance_option( 'title' ) ? $method->get_instance_option( 'title' ) : $method->method_title;
+					
+					// Get pickup locations if this method has multiple locations
+					$pickup_locations = $method->get_instance_option( 'pickup_locations' );
+					
+					if ( is_array( $pickup_locations ) && ! empty( $pickup_locations ) ) {
+						// Multiple pickup locations stored in settings
+						foreach ( $pickup_locations as $loc_id => $loc_data ) {
+							$locations[] = array(
+								'instance_id' => $instance_id,
+								'location_id' => $loc_id,
+								'title'       => isset( $loc_data['name'] ) ? $loc_data['name'] : sprintf( '%s - Location %s', $method_title, $loc_id ),
+								'zone_id'     => 0,
+							);
+						}
+					} else {
+						// Single local pickup method
+						$locations[] = array(
+							'instance_id' => $instance_id,
+							'location_id' => $instance_id,
+							'title'       => $method_title,
+							'zone_id'     => 0,
+						);
+					}
 				}
 			}
 		}
