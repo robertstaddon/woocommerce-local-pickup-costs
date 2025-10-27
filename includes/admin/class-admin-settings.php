@@ -217,8 +217,8 @@ class WC_LPC_Admin_Settings {
 			return;
 		}
 
-		// Check if this is our section
-		if ( ! isset( $_POST['current_section'] ) || 'local_pickup_costs' !== $_POST['current_section'] ) {
+		// Check if this is our section (WooCommerce passes section via GET parameter)
+		if ( ! isset( $_GET['section'] ) || 'local_pickup_costs' !== $_GET['section'] ) {
 			return;
 		}
 
