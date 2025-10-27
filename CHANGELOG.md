@@ -5,6 +5,27 @@ All notable changes to the WooCommerce Local Pickup Costs plugin will be documen
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2025-01-XX
+
+### Fixed
+- Fixed cost override to work correctly with WooCommerce Checkout Blocks
+- Changed method detection from string search to proper method_id check (`method_id === 'pickup_location'`)
+- Implemented location matching by name from shipping item meta instead of relying on rate IDs
+- Fixed cost application to shipping item directly instead of order total
+- Added proper order totals recalculation after cost modification
+
+### Removed
+- Removed all classic checkout compatibility code
+- Removed `modify_local_pickup_cost_classic()` method
+- Removed `get_location_index_from_rate_id()` method
+- Removed `woocommerce_package_rates` filter hook
+- Plugin now exclusively supports WooCommerce Checkout Blocks
+
+### Added
+- Comprehensive debug logging at every step of the cost override process
+- Logging includes: location name extraction, matching process, custom cost application, and totals
+- Detailed troubleshooting information for verifying cost override functionality
+
 ## [1.1.4] - 2025-01-XX
 
 ### Added
