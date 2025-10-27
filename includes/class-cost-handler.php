@@ -47,7 +47,7 @@ class WC_LPC_Cost_Handler {
 	 */
 	private function init_hooks() {
 		// Hook for WooCommerce Blocks checkout
-		add_filter( 'woocommerce_store_api_checkout_update_order_from_request', array( $this, 'apply_custom_pickup_cost' ), 10, 3 );
+		add_action( 'woocommerce_store_api_checkout_update_order_from_request', array( $this, 'apply_custom_pickup_cost' ), 10, 2 );
 		
 		// Fallback for classic checkout
 		add_filter( 'woocommerce_package_rates', array( $this, 'modify_local_pickup_cost_classic' ), 10, 2 );
@@ -58,10 +58,9 @@ class WC_LPC_Cost_Handler {
 	 *
 	 * @param object $order Order object.
 	 * @param object $request Request object from Store API.
-	 * @param object $order_controller Order controller.
-	 * @return object Modified order.
+	 * @return void
 	 */
-	public function apply_custom_pickup_cost( $order, $request, $order_controller ) {
+	public function apply_custom_pickup_cost( $order, $request ) {
 		// DEBUG: Log the entire request to see what data we have
 		if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
 			error_log( 'WC LPC - Request data: ' . print_r( $request, true ) );
@@ -148,8 +147,6 @@ class WC_LPC_Cost_Handler {
 				error_log( 'WC LPC - No custom cost applied' );
 			}
 		}
-
-		return $order;
 	}
 
 	/**
