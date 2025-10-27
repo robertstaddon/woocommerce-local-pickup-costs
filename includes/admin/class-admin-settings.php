@@ -215,39 +215,35 @@ class WC_LPC_Admin_Settings {
 		}
 
 		// Check if this is our section
-		if ( isset( $_POST['current_section'] ) && 'local_pickup_costs' !== $_POST['current_section'] ) {
+		if ( ! isset( $_POST['current_section'] ) || 'local_pickup_costs' !== $_POST['current_section'] ) {
 			return;
 		}
 
-		// Get existing costs
-		$existing_costs = get_option( 'wc_lpc_location_costs', array() );
+		// Get the location costs from POST data
+		// When form has name="wc_lpc_location_costs[0]", PHP creates $_POST['wc_lpc_location_costs'] as an array
+		if ( isset( $_POST['wc_lpc_location_costs'] ) && is_array( $_POST['wc_lpc_location_costs'] ) ) {
+			$location_costs = array();
 
-		// Get all the text fields
-		$pickup_locations = $this->get_local_pickup_locations();
+			foreach ( $_POST['wc_lpc_location_costs'] as $index => $cost ) {
+				// Sanitize the index
+				$index = sanitize_text_field( wp_unslash( $index ) );
+				// Sanitize the cost
+				$cost = sanitize_text_field( wp_unslash( $cost ) );
 
-		foreach ( $pickup_locations as $location ) {
-			$location_index = $location['index'];
-			
-			// Get the value from the form
-			$field_name = 'wc_lpc_location_costs[' . $location_index . ']';
-			
-			if ( isset( $_POST[ $field_name ] ) ) {
-				$cost = sanitize_text_field( wp_unslash( $_POST[ $field_name ] ) );
-				
 				// Allow empty string (to use global cost) or valid numeric value
 				if ( $cost === '' ) {
-					$existing_costs[ $location_index ] = '';
+					$location_costs[ $index ] = '';
 				} else {
 					// Validate it's a valid number
 					if ( is_numeric( $cost ) && floatval( $cost ) >= 0 ) {
-						$existing_costs[ $location_index ] = $cost;
+						$location_costs[ $index ] = $cost;
 					}
 				}
 			}
-		}
 
-		// Save the settings
-		update_option( 'wc_lpc_location_costs', $existing_costs );
+			// Save the settings
+			update_option( 'wc_lpc_location_costs', $location_costs );
+		}
 	}
 }
 
