@@ -39,7 +39,7 @@ jobs:
             --exclude='vendor' \
             --exclude='*.md' \
             ./ \
-            ${{ vars.SFTP_USERNAME }}@${{ vars.SFTP_SERVER }}:${{ vars.SFTP_REMOTE_PLUGIN_PATH }}/
+            ${{ vars.SFTP_USERNAME }}@${{ vars.SFTP_SERVER }}:${{ vars.SFTP_REMOTE_PLUGIN_PATH }}/woocommerce-local-pickup-costs/
 
       - name: Cleanup
         run: |
