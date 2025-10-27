@@ -103,25 +103,23 @@ class WC_LPC_Admin_Settings {
 				<?php else : ?>
 					<?php foreach ( $pickup_locations as $location ) : ?>
 						<?php
-						$instance_id = $location['instance_id'];
-						$location_id = isset( $location['location_id'] ) ? $location['location_id'] : $instance_id;
+						$location_index = $location['index'];
 						$location_name = $location['title'];
 						
-						// Use location_id as the key for storing costs
-						$cost_key = $location_id;
-						$current_cost = isset( $location_costs[ $cost_key ] ) ? $location_costs[ $cost_key ] : '';
+						// Use array index as the key for storing costs
+						$current_cost = isset( $location_costs[ $location_index ] ) ? $location_costs[ $location_index ] : '';
 						?>
 						<tr>
 							<th scope="row">
-								<label for="wc_lpc_location_cost_<?php echo esc_attr( $cost_key ); ?>">
+								<label for="wc_lpc_location_cost_<?php echo esc_attr( $location_index ); ?>">
 									<?php echo esc_html( $location_name ); ?>
 								</label>
 							</th>
 							<td>
 								<input 
 									type="text" 
-									id="wc_lpc_location_cost_<?php echo esc_attr( $cost_key ); ?>" 
-									name="wc_lpc_location_costs[<?php echo esc_attr( $cost_key ); ?>]" 
+									id="wc_lpc_location_cost_<?php echo esc_attr( $location_index ); ?>" 
+									name="wc_lpc_location_costs[<?php echo esc_attr( $location_index ); ?>]" 
 									value="<?php echo esc_attr( $current_cost ); ?>" 
 									placeholder="<?php esc_attr_e( 'Use global cost', 'woocommerce-local-pickup-costs' ); ?>"
 									class="regular-text"
@@ -129,7 +127,7 @@ class WC_LPC_Admin_Settings {
 								<p class="description">
 									<?php esc_html_e( 'Enter a cost (e.g., 5.00) or leave blank to use the global cost. Set to 0 to make it free.', 'woocommerce-local-pickup-costs' ); ?>
 								</p>
-								<input type="hidden" name="wc_lpc_location_ids[]" value="<?php echo esc_attr( $cost_key ); ?>" />
+								<input type="hidden" name="wc_lpc_location_ids[]" value="<?php echo esc_attr( $location_index ); ?>" />
 							</td>
 						</tr>
 					<?php endforeach; ?>
@@ -151,46 +149,21 @@ class WC_LPC_Admin_Settings {
 	private function get_local_pickup_locations() {
 		$locations = array();
 
-		// Get all shipping zones
-		$zones = WC_Shipping_Zones::get_zones();
+		// Get pickup locations from the WordPress option
+		$pickup_locations_data = get_option( 'pickup_location_pickup_locations', array() );
 
-		foreach ( $zones as $zone_data ) {
-			if ( isset( $zone_data['shipping_methods'] ) ) {
-				foreach ( $zone_data['shipping_methods'] as $method ) {
-					// Check if this is a local pickup method by method_id
-					if ( isset( $method->id ) && 'local_pickup' === $method->id ) {
-						$instance_id = $method->instance_id;
-						$method_title = $method->get_instance_option( 'title' ) ? $method->get_instance_option( 'title' ) : $method->method_title;
-						
-						// Each instance is a separate location
-						$locations[] = array(
-							'instance_id' => $instance_id,
-							'location_id' => $instance_id,
-							'title'       => $method_title,
-							'zone_id'     => $zone_data['id'],
-						);
-					}
-				}
-			}
-		}
-
-		// Also check the "Rest of the World" zone
-		$worldwide_zone = WC_Shipping_Zones::get_zone_by( 'zone_id', 0 );
-
-		if ( $worldwide_zone ) {
-			$methods = $worldwide_zone->get_shipping_methods();
-
-			foreach ( $methods as $method ) {
-				if ( isset( $method->id ) && 'local_pickup' === $method->id ) {
-					$instance_id = $method->instance_id;
-					$method_title = $method->get_instance_option( 'title' ) ? $method->get_instance_option( 'title' ) : $method->method_title;
+		if ( is_array( $pickup_locations_data ) && ! empty( $pickup_locations_data ) ) {
+			foreach ( $pickup_locations_data as $index => $location_data ) {
+				// Only include enabled locations
+				if ( isset( $location_data['enabled'] ) && $location_data['enabled'] ) {
+					$location_name = isset( $location_data['name'] ) ? $location_data['name'] : sprintf( __( 'Location %s', 'woocommerce-local-pickup-costs' ), $index );
 					
-					// Each instance is a separate location
 					$locations[] = array(
-						'instance_id' => $instance_id,
-						'location_id' => $instance_id,
-						'title'       => $method_title,
-						'zone_id'     => 0,
+						'location_id' => $index,
+						'index'       => $index,
+						'title'       => $location_name,
+						'address'     => isset( $location_data['address'] ) ? $location_data['address'] : array(),
+						'details'     => isset( $location_data['details'] ) ? $location_data['details'] : '',
 					);
 				}
 			}

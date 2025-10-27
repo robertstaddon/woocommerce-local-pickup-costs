@@ -68,6 +68,9 @@ class WC_LPC_Cost_Handler {
 			return $rates;
 		}
 
+		// Get pickup locations to map instance to index
+		$pickup_locations = get_option( 'pickup_location_pickup_locations', array() );
+
 		// Loop through all rates
 		foreach ( $rates as $rate_id => $rate ) {
 			// Only process local pickup methods
@@ -75,26 +78,32 @@ class WC_LPC_Cost_Handler {
 				continue;
 			}
 
-			// Get the instance ID (this is usually in the rate ID like "local_pickup:1")
-			$instance_id = $this->get_instance_id_from_rate( $rate_id );
-
-			if ( ! $instance_id ) {
-				continue;
+			// Check if the rate has selected_pickup_location in its meta_data
+			$selected_location_index = null;
+			
+			if ( property_exists( $rate, 'meta_data' ) && is_array( $rate->meta_data ) ) {
+				// Check if the location index is stored in meta_data
+				foreach ( $rate->meta_data as $meta ) {
+					if ( isset( $meta->key ) && 'selected_pickup_location' === $meta->key ) {
+						$selected_location_index = $meta->value;
+						break;
+					}
+				}
 			}
 
-			// Check if this location has a custom cost
-			if ( isset( $location_costs[ $instance_id ] ) && $location_costs[ $instance_id ] !== '' ) {
-				$custom_cost = floatval( $location_costs[ $instance_id ] );
+			// If no location index in meta, try to get it from the rate ID or instance
+			if ( null === $selected_location_index ) {
+				// Check if rate has a pickup location index in its settings
+				// This would be set when a specific location is selected
+				$selected_location_index = $this->get_location_index_from_rate( $rate_id, $rate );
+			}
+
+			// If we found a location index, apply the custom cost
+			if ( null !== $selected_location_index && isset( $location_costs[ $selected_location_index ] ) && $location_costs[ $selected_location_index ] !== '' ) {
+				$custom_cost = floatval( $location_costs[ $selected_location_index ] );
 
 				// Set the new cost
-				// Note: Rate cost is typically stored as an array with cost and label
-				if ( property_exists( $rate, 'meta_data' ) && is_array( $rate->meta_data ) ) {
-					// Handle newer WooCommerce rate structure
-					$rate->set_cost( $custom_cost );
-				} else {
-					// Fallback for older versions
-					$rate->cost = $custom_cost;
-				}
+				$rate->set_cost( $custom_cost );
 			}
 		}
 
@@ -102,23 +111,33 @@ class WC_LPC_Cost_Handler {
 	}
 
 	/**
-	 * Get instance ID from rate ID
+	 * Get location index from rate
 	 *
-	 * @param string $rate_id Rate ID (e.g., "local_pickup:1").
-	 * @return int|false Instance ID or false if not found.
+	 * @param string $rate_id Rate ID.
+	 * @param object $rate Rate object.
+	 * @return int|null Location index or null.
 	 */
-	private function get_instance_id_from_rate( $rate_id ) {
-		// Extract instance ID from rate ID
-		// Format is usually "method_id:instance_id" or similar
-		$parts = explode( ':', $rate_id );
-		
-		if ( count( $parts ) >= 2 ) {
-			return intval( $parts[1] );
+	private function get_location_index_from_rate( $rate_id, $rate ) {
+		// This will be implemented based on how WooCommerce stores selected location
+		// For now, we'll check the session for the selected location
+		if ( WC()->session ) {
+			$selected_location = WC()->session->get( 'chosen_shipping_methods', array() );
+			
+			// The selected pickup location index might be stored elsewhere
+			// Check if we can determine it from the rate
+			
+			// Try to extract from rate ID format if it includes location info
+			// Rate format might be "pickup_location:0" or similar
+			if ( strpos( $rate_id, 'pickup_location' ) !== false ) {
+				$parts = explode( ':', $rate_id );
+				if ( isset( $parts[2] ) && is_numeric( $parts[2] ) ) {
+					return intval( $parts[2] );
+				}
+			}
 		}
 
-		// Alternative: check the rate object for instance ID
-		// This might vary depending on WooCommerce version
-		return false;
+		return null;
 	}
+
 }
 

@@ -5,6 +5,18 @@ All notable changes to the WooCommerce Local Pickup Costs plugin will be documen
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.4] - 2025-01-XX
+
+### Fixed
+- Changed location retrieval to read from the `pickup_location_pickup_locations` WordPress option
+- Updated cost storage to use array indices matching the pickup locations array
+- Locations are now identified by their array position (0, 1, 2, 3...) instead of instance IDs
+- Cost overrides are now stored and retrieved by array index for proper matching
+
+### Changed
+- Cost storage structure now matches WooCommerce's pickup locations array structure
+- Location identification uses the same index as the `pickup_location_pickup_locations` option
+
 ## [1.0.3] - 2025-01-XX
 
 ### Fixed

@@ -88,7 +88,7 @@ class WC_LPC_Checkout_Handler {
 		$locations = $this->get_local_pickup_locations();
 
 		foreach ( $locations as $location ) {
-			if ( (string) $location['instance_id'] === (string) $location_id ) {
+			if ( (string) $location['index'] === (string) $location_id ) {
 				return true;
 			}
 		}
@@ -104,46 +104,19 @@ class WC_LPC_Checkout_Handler {
 	private function get_local_pickup_locations() {
 		$locations = array();
 
-		// Get all shipping zones
-		$zones = WC_Shipping_Zones::get_zones();
+		// Get pickup locations from the WordPress option
+		$pickup_locations_data = get_option( 'pickup_location_pickup_locations', array() );
 
-		foreach ( $zones as $zone_data ) {
-			if ( isset( $zone_data['shipping_methods'] ) ) {
-				foreach ( $zone_data['shipping_methods'] as $method ) {
-					// Check if this is a local pickup method by method_id
-					if ( isset( $method->id ) && 'local_pickup' === $method->id ) {
-						$instance_id = $method->instance_id;
-						$method_title = $method->get_instance_option( 'title' ) ? $method->get_instance_option( 'title' ) : $method->method_title;
-						
-						// Each instance is a separate location
-						$locations[] = array(
-							'instance_id' => $instance_id,
-							'location_id' => $instance_id,
-							'title'       => $method_title,
-							'zone_id'     => $zone_data['id'],
-						);
-					}
-				}
-			}
-		}
-
-		// Also check the "Rest of the World" zone
-		$worldwide_zone = WC_Shipping_Zones::get_zone_by( 'zone_id', 0 );
-
-		if ( $worldwide_zone ) {
-			$methods = $worldwide_zone->get_shipping_methods();
-
-			foreach ( $methods as $method ) {
-				if ( isset( $method->id ) && 'local_pickup' === $method->id ) {
-					$instance_id = $method->instance_id;
-					$method_title = $method->get_instance_option( 'title' ) ? $method->get_instance_option( 'title' ) : $method->method_title;
+		if ( is_array( $pickup_locations_data ) && ! empty( $pickup_locations_data ) ) {
+			foreach ( $pickup_locations_data as $index => $location_data ) {
+				// Only include enabled locations
+				if ( isset( $location_data['enabled'] ) && $location_data['enabled'] ) {
+					$location_name = isset( $location_data['name'] ) ? $location_data['name'] : sprintf( __( 'Location %s', 'woocommerce-local-pickup-costs' ), $index );
 					
-					// Each instance is a separate location
 					$locations[] = array(
-						'instance_id' => $instance_id,
-						'location_id' => $instance_id,
-						'title'       => $method_title,
-						'zone_id'     => 0,
+						'location_id' => $index,
+						'index'       => $index,
+						'title'       => $location_name,
 					);
 				}
 			}
