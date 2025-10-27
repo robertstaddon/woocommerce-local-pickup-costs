@@ -5,6 +5,17 @@ All notable changes to the WooCommerce Local Pickup Costs plugin will be documen
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.5] - 2025-01-XX
+
+### Fixed
+- Removed AJAX save behavior and switched to standard WooCommerce admin page save mechanism
+- Settings now save using the default WordPress post-back form submission
+- Improved UI consistency with WooCommerce admin pages
+
+### Changed
+- Converted custom settings rendering to WooCommerce's Settings API
+- Use custom field type for location-specific cost inputs within standard settings framework
+
 ## [1.0.4] - 2025-01-XX
 
 ### Fixed

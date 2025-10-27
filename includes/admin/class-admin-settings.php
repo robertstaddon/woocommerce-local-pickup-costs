@@ -48,7 +48,20 @@ class WC_LPC_Admin_Settings {
 	private function init_hooks() {
 		add_filter( 'woocommerce_get_sections_shipping', array( $this, 'add_shipping_section' ), 20 );
 		add_filter( 'woocommerce_get_settings_shipping', array( $this, 'get_settings' ), 10, 2 );
-		add_action( 'woocommerce_settings_save_shipping', array( $this, 'save_settings' ) );
+		add_action( 'woocommerce_settings_save_shipping', array( $this, 'save_custom_fields' ) );
+		add_action( 'woocommerce_admin_field_custom', array( $this, 'output_custom_field' ) );
+	}
+
+	/**
+	 * Output custom field
+	 *
+	 * @param array $value Field value.
+	 */
+	public function output_custom_field( $value ) {
+		// Check if this is one of our location cost fields
+		if ( strpos( $value['id'], 'wc_lpc_location_cost_' ) === 0 ) {
+			self::output_location_cost_field( $value );
+		}
 	}
 
 	/**
@@ -85,60 +98,72 @@ class WC_LPC_Admin_Settings {
 		$pickup_locations = $this->get_local_pickup_locations();
 		$location_costs   = get_option( 'wc_lpc_location_costs', array() );
 
-		?>
-		<div class="wc-lpc-settings">
-			<table class="form-table">
-				<tr>
-					<th colspan="2">
-						<h2><?php esc_html_e( 'Local Pickup Location Costs', 'woocommerce-local-pickup-costs' ); ?></h2>
-						<p><?php esc_html_e( 'Set custom costs for each local pickup location. Leave blank to use the global cost from Local Pickup settings.', 'woocommerce-local-pickup-costs' ); ?></p>
-					</th>
-				</tr>
-				<?php if ( empty( $pickup_locations ) ) : ?>
-					<tr>
-						<td colspan="2">
-							<p><?php esc_html_e( 'No local pickup locations found. Please add a local pickup shipping method first.', 'woocommerce-local-pickup-costs' ); ?></p>
-						</td>
-					</tr>
-				<?php else : ?>
-					<?php foreach ( $pickup_locations as $location ) : ?>
-						<?php
-						$location_index = $location['index'];
-						$location_name = $location['title'];
-						
-						// Use array index as the key for storing costs
-						$current_cost = isset( $location_costs[ $location_index ] ) ? $location_costs[ $location_index ] : '';
-						?>
-						<tr>
-							<th scope="row">
-								<label for="wc_lpc_location_cost_<?php echo esc_attr( $location_index ); ?>">
-									<?php echo esc_html( $location_name ); ?>
-								</label>
-							</th>
-							<td>
-								<input 
-									type="text" 
-									id="wc_lpc_location_cost_<?php echo esc_attr( $location_index ); ?>" 
-									name="wc_lpc_location_costs[<?php echo esc_attr( $location_index ); ?>]" 
-									value="<?php echo esc_attr( $current_cost ); ?>" 
-									placeholder="<?php esc_attr_e( 'Use global cost', 'woocommerce-local-pickup-costs' ); ?>"
-									class="regular-text"
-								/>
-								<p class="description">
-									<?php esc_html_e( 'Enter a cost (e.g., 5.00) or leave blank to use the global cost. Set to 0 to make it free.', 'woocommerce-local-pickup-costs' ); ?>
-								</p>
-								<input type="hidden" name="wc_lpc_location_ids[]" value="<?php echo esc_attr( $location_index ); ?>" />
-							</td>
-						</tr>
-					<?php endforeach; ?>
-				<?php endif; ?>
-			</table>
-			<?php wp_nonce_field( 'wc_lpc_save_settings', 'wc_lpc_settings_nonce' ); ?>
-		</div>
-		<?php
+		// Start with title
+		$settings = array(
+			array(
+				'title' => __( 'Local Pickup Location Costs', 'woocommerce-local-pickup-costs' ),
+				'type'  => 'title',
+				'desc'  => __( 'Set custom costs for each local pickup location. Leave blank to use the global cost from Local Pickup settings.', 'woocommerce-local-pickup-costs' ),
+				'id'    => 'wc_lpc_title',
+			),
+		);
 
-		// Return empty array since we're outputting HTML
-		return array();
+		if ( empty( $pickup_locations ) ) {
+			$settings[] = array(
+				'title' => '',
+				'desc'  => __( 'No local pickup locations found. Please add a local pickup shipping method first.', 'woocommerce-local-pickup-costs' ),
+				'type'  => 'title',
+				'id'    => 'wc_lpc_no_locations',
+			);
+		} else {
+			foreach ( $pickup_locations as $location ) {
+				$location_index = $location['index'];
+				$location_name = $location['title'];
+				
+				$settings[] = array(
+					'title'   => $location_name,
+					'id'      => 'wc_lpc_location_cost_' . $location_index,
+					'type'    => 'custom',
+					'default' => isset( $location_costs[ $location_index ] ) ? $location_costs[ $location_index ] : '',
+				);
+			}
+		}
+
+		// End section
+		$settings[] = array(
+			'type' => 'sectionend',
+			'id'   => 'wc_lpc_end',
+		);
+
+		return $settings;
+	}
+
+	/**
+	 * Output custom field for each location
+	 *
+	 * @param array $value Field value.
+	 */
+	public static function output_location_cost_field( $value ) {
+		$location_index = str_replace( 'wc_lpc_location_cost_', '', $value['id'] );
+		$current_cost = isset( $value['default'] ) ? $value['default'] : '';
+		
+		?>
+		<tr valign="top">
+			<th scope="row" class="titledesc">
+				<label><?php echo esc_html( $value['title'] ); ?></label>
+			</th>
+			<td class="forminp">
+				<input 
+					type="text" 
+					name="wc_lpc_location_costs[<?php echo esc_attr( $location_index ); ?>]" 
+					value="<?php echo esc_attr( $current_cost ); ?>" 
+					placeholder="<?php esc_attr_e( 'Use global cost', 'woocommerce-local-pickup-costs' ); ?>"
+					class="input-text regular-input"
+				/>
+				<p class="description"><?php esc_html_e( 'Enter a cost (e.g., 5.00) or leave blank to use the global cost. Set to 0 to make it free.', 'woocommerce-local-pickup-costs' ); ?></p>
+			</td>
+		</tr>
+		<?php
 	}
 
 	/**
@@ -176,11 +201,14 @@ class WC_LPC_Admin_Settings {
 	 * Save settings
 	 */
 	public function save_settings() {
-		// Check nonce
-		if ( ! isset( $_POST['wc_lpc_settings_nonce'] ) || ! wp_verify_nonce( wp_unslash( $_POST['wc_lpc_settings_nonce'] ), 'wc_lpc_save_settings' ) ) {
-			return;
-		}
+		// This is kept for backwards compatibility but doesn't do anything
+		// The actual saving happens in save_custom_fields
+	}
 
+	/**
+	 * Save custom fields
+	 */
+	public function save_custom_fields() {
 		// Check capabilities
 		if ( ! current_user_can( 'manage_woocommerce' ) ) {
 			return;
@@ -191,42 +219,35 @@ class WC_LPC_Admin_Settings {
 			return;
 		}
 
-		// Get and sanitize location costs
-		$location_costs = array();
+		// Get existing costs
+		$existing_costs = get_option( 'wc_lpc_location_costs', array() );
 
-		if ( isset( $_POST['wc_lpc_location_costs'] ) && is_array( $_POST['wc_lpc_location_costs'] ) ) {
-			foreach ( $_POST['wc_lpc_location_costs'] as $instance_id => $cost ) {
-				$instance_id = sanitize_text_field( wp_unslash( $instance_id ) );
-				$cost        = sanitize_text_field( wp_unslash( $cost ) );
+		// Get all the text fields
+		$pickup_locations = $this->get_local_pickup_locations();
 
+		foreach ( $pickup_locations as $location ) {
+			$location_index = $location['index'];
+			
+			// Get the value from the form
+			$field_name = 'wc_lpc_location_costs[' . $location_index . ']';
+			
+			if ( isset( $_POST[ $field_name ] ) ) {
+				$cost = sanitize_text_field( wp_unslash( $_POST[ $field_name ] ) );
+				
 				// Allow empty string (to use global cost) or valid numeric value
 				if ( $cost === '' ) {
-					$location_costs[ $instance_id ] = '';
+					$existing_costs[ $location_index ] = '';
 				} else {
 					// Validate it's a valid number
 					if ( is_numeric( $cost ) && floatval( $cost ) >= 0 ) {
-						$location_costs[ $instance_id ] = $cost;
+						$existing_costs[ $location_index ] = $cost;
 					}
 				}
 			}
 		}
 
 		// Save the settings
-		update_option( 'wc_lpc_location_costs', $location_costs );
-
-		// Add success message
-		add_action( 'admin_notices', array( $this, 'settings_saved_notice' ) );
-	}
-
-	/**
-	 * Display settings saved notice
-	 */
-	public function settings_saved_notice() {
-		?>
-		<div class="notice notice-success is-dismissible">
-			<p><?php esc_html_e( 'Local pickup costs have been saved.', 'woocommerce-local-pickup-costs' ); ?></p>
-		</div>
-		<?php
+		update_option( 'wc_lpc_location_costs', $existing_costs );
 	}
 }
 
