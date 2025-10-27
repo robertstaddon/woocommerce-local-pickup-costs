@@ -5,6 +5,13 @@ All notable changes to the WooCommerce Local Pickup Costs plugin will be documen
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.1] - 2025-01-XX
+
+### Fixed
+- Fixed fatal error: "Too few arguments" by changing from filter to action hook
+- Corrected function signature to accept only 2 arguments (order and request)
+- Added comprehensive debug logging to investigate data structure
+
 ## [1.1.0] - 2025-01-XX
 
 ### Added
@@ -18,7 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Maintains classic checkout fallback for backwards compatibility
 
 ### Technical
-- Uses `woocommerce_store_api_checkout_update_order_from_request` filter for Blocks checkout
+- Uses `woocommerce_store_api_checkout_update_order_from_request` action for Blocks checkout
 - Modifies order shipping total directly before finalization
 - Stores pickup location index as order meta for reference
 
