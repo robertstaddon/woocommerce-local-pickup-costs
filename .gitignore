@@ -1,0 +1,40 @@
+# WordPress
+*.log
+*.pot
+*.po
+.svn
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+.project
+.classpath
+.settings/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Dependencies
+node_modules/
+vendor/
+composer.lock
+
+# Build files
+*.zip
+dist/
+
+# Temporary files
+*.tmp
+*.bak
+*~
+
+# WordPress specific
+wp-config.php
+wp-content/uploads/
+

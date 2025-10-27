@@ -1,0 +1,229 @@
+# WooCommerce Local Pickup Costs Extension - Cursor Rules
+
+## Project Type
+This is a WooCommerce plugin/extension for local pickup cost management.
+
+## Core Technologies
+- **WordPress**: Latest stable version
+- **WooCommerce**: Latest stable version (requires WooCommerce 3.0+)
+- **PHP**: 7.4+ (use modern PHP features when appropriate)
+- **JavaScript**: ES6+ for any frontend enhancements
+- **HTML/CSS**: Standard web technologies
+
+## Code Quality Standards
+
+### PHP Standards
+- Follow WordPress PHP Coding Standards
+- Use strict typing when possible: `declare(strict_types=1);`
+- Implement proper PHPDoc blocks for all functions, classes, and methods
+- Use descriptive function and variable names (camelCase for functions, snake_case for variables in WordPress context)
+- Prefer dependency injection over global state
+- Use early returns to reduce nesting
+- Implement proper error handling with try-catch blocks
+- Use WordPress debug logging: `error_log()` or `WC_Logger` for debugging
+
+### WordPress Best Practices
+- Use WordPress hooks (actions and filters) instead of modifying core files
+- Implement proper nonce verification for all form submissions
+- Sanitize all inputs using `sanitize_text_field()`, `sanitize_email()`, etc.
+- Escape all outputs using `esc_html()`, `esc_attr()`, `esc_url()`, etc.
+- Use WordPress database abstraction layer (`$wpdb`) with prepared statements
+- Implement proper user capability checks: `current_user_can()`
+- Use `wp_enqueue_script()` and `wp_enqueue_style()` for proper asset management
+- Follow WordPress naming conventions for functions and classes
+
+### WooCommerce Best Practices
+- Check for WooCommerce activation before executing WooCommerce-specific code
+- Use WooCommerce's built-in functions instead of reinventing the wheel
+- Leverage WooCommerce hooks (actions and filters) for extensibility
+- Use WooCommerce's Settings API for plugin configuration
+- Integrate settings into WooCommerce's admin interface
+- Use WooCommerce session handling when needed
+- Use `WC()->session->set()` and `WC()->session->get()` for session data
+- Implement proper WooCommerce data stores when extending functionality
+- Use WooCommerce's logging system: `wc_get_logger()->debug()`
+- Support WooCommerce's translation functions: `__()`, `esc_html__()`, `sprintf()`
+
+## Plugin Structure
+
+### File Organization
+```
+woocommerce-local-pickup-costs/
+├── woocommerce-local-pickup-costs.php (Main plugin file)
+├── includes/
+│   ├── class-wc-local-pickup-costs.php
+│   ├── admin/
+│   │   ├── class-admin.php
+│   │   └── class-admin-settings.php
+│   ├── frontend/
+│   │   └── class-frontend.php
+│   └── includes/
+│       └── class-core-functions.php
+├── assets/
+│   ├── css/
+│   ├── js/
+│   └── images/
+├── languages/
+├── templates/
+└── README.md
+```
+
+### Naming Conventions
+- Plugin prefix: `wc_lpc` (WC Local Pickup Costs)
+- Function prefix: `wc_lpc_`
+- Class prefix: `WC_LPC_` or `WC_Local_Pickup_Costs_`
+- Database table prefix: `wc_lpc_`
+- Option prefix: `wc_lpc_`
+- Transient prefix: `wc_lpc_`
+- Hook prefix: `wc_lpc_`
+- Use kebab-case for filenames: `class-admin-settings.php`
+
+### Class Structure
+- Use proper namespacing or class prefixes
+- Document all public methods
+- Use proper visibility (public, private, protected)
+- Implement singleton pattern for main plugin class when appropriate
+- Use dependency injection where possible
+
+## Security Requirements
+
+### Data Validation and Sanitization
+- Always validate and sanitize user inputs
+- Use WordPress sanitization functions: `sanitize_text_field()`, `sanitize_email()`, etc.
+- Use `wp_unslash()` when getting data from `$_POST` or `$_GET`
+- Never trust user input
+- Validate data types and ranges
+
+### Output Escaping
+- Always escape output: `esc_html()`, `esc_attr()`, `esc_url()`, etc.
+- Use `wp_kses()` for allowed HTML tags
+- Use `esc_html_e()` for translatable strings
+
+### Nonce Verification
+- Implement nonce verification for all forms: `wp_nonce_field()`, `check_admin_referer()`
+- Use nonces in AJAX requests
+
+### Capability Checks
+- Check user capabilities: `current_user_can()`, `current_user_can('manage_woocommerce')`
+- Verify user is logged in when necessary: `is_user_logged_in()`
+
+### SQL Injection Prevention
+- Use `$wpdb->prepare()` for all database queries
+- Never concatenate user input directly into SQL queries
+- Use WordPress database abstraction layer
+
+## WooCommerce Integration
+
+### Shipping Method Integration
+- This plugin extends WooCommerce shipping functionality
+- Hook into appropriate WooCommerce shipping hooks
+- Use `woocommerce_shipping_methods` filter to register custom shipping methods (if needed)
+- Use `woocommerce_package_rates` filter to modify shipping rates
+- Store settings using `woocommerce_shipping_settings` or custom options
+
+### Settings Integration
+- Add settings under WooCommerce > Settings > Shipping
+- Use `woocommerce_shipping_instance_settings_values` filter for instance settings
+- Create admin settings page if needed
+- Use WooCommerce's Settings API
+
+### Order Integration
+- Store pickup cost data in order meta when appropriate
+- Use `woocommerce_checkout_update_order_meta` action
+- Display pickup cost information in order admin area
+- Use `woocommerce_admin_order_data_after_shipping_address` to display additional data
+
+### Cart and Checkout Integration
+- Modify cart totals using appropriate WooCommerce filters
+- Use `woocommerce_cart_calculate_fees` to add fees
+- Validate during checkout using `woocommerce_checkout_process`
+- Use `woocommerce_after_shipping_rate` to display additional information
+
+### Translation Support
+- Use WordPress translation functions: `__()`, `_e()`, `esc_html__()`, etc.
+- Provide proper text domain: `'woocommerce-local-pickup-costs'`
+- Use placeholder format for translatable strings with variables
+- Prepare .pot file for translations
+
+## Performance Considerations
+- Use WordPress transients API for caching when appropriate
+- Minimize database queries
+- Use `update_option()` and `get_option()` efficiently
+- Implement proper caching where needed
+- Use WordPress's built-in optimization features
+
+## Debugging and Development
+- Enable WordPress debug mode for development
+- Use proper logging: `error_log()` or WooCommerce logger
+- Implement comprehensive error handling
+- Use proper PHP error reporting levels
+- Test on staging environment before production
+
+## Version Control
+- Follow semantic versioning (x.y.z)
+- Keep a changelog
+- Use meaningful commit messages
+- Don't commit compiled files or sensitive data
+- Keep .gitignore updated
+
+## Testing
+- Test all major user flows
+- Test with different WooCommerce versions
+- Test with various themes
+- Test with other common WooCommerce extensions
+- Implement unit tests where possible using PHPUnit
+
+## Documentation
+- Document all functions with proper PHPDoc
+- Keep README.md updated
+- Include inline comments for complex logic
+- Provide user-facing documentation
+- Document hook usage and customization options
+
+## Licensing
+- Follow appropriate WordPress/GPL licensing guidelines
+- Include proper license headers in all files
+
+## Common Patterns
+
+### Plugin Header
+```php
+<?php
+/**
+ * Plugin Name: WooCommerce Local Pickup Costs
+ * Plugin URI: https://example.com/woocommerce-local-pickup-costs
+ * Description: Add customizable costs for local pickup shipping method.
+ * Version: 1.0.0
+ * Author: Your Name
+ * Author URI: https://example.com
+ * Text Domain: woocommerce-local-pickup-costs
+ * Domain Path: /languages
+ * Requires at least: 5.8
+ * Tested up to: 6.4
+ * Requires PHP: 7.4
+ * WC requires at least: 3.0
+ * WC tested up to: 8.0
+ * License: GPL v2 or later
+ * License URI: https://www.gnu.org/licenses/gpl-2.0.html
+ */
+```
+
+### Main Plugin Class Structure
+- Implement singleton pattern for main class
+- Use proper activation/deactivation hooks
+- Implement dependency checks (WooCommerce version)
+- Register activation and deactivation hooks
+- Enqueue scripts and styles on appropriate pages
+- Hook into WooCommerce actions and filters
+
+## AI Assistant Guidelines
+- Always provide complete, working code examples
+- Follow all WordPress and WooCommerce best practices
+- Explain security implications of code
+- Suggest proper WordPress/WooCommerce alternatives when applicable
+- Include error handling in all code examples
+- Consider backward compatibility
+- Test code before presenting
+- Provide context for WooCommerce-specific implementations
+- Use modern PHP features when appropriate (typed properties, return types, etc.)
+

@@ -1,0 +1,47 @@
+name: Deploy to Beta Server
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+
+jobs:
+  deploy:
+    name: Deploy to Abundant Designs Beta Server
+    runs-on: ubuntu-latest
+    environment:
+      name: Abundant Designs Beta Server
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -p ${{ vars.SFTP_PORT }} ${{ vars.SFTP_SERVER }} >> ~/.ssh/known_hosts
+
+      - name: Deploy to server
+        run: |
+          rsync -avz \
+            --delete \
+            -e "ssh -p ${{ vars.SFTP_PORT }} -i ~/.ssh/deploy_key" \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='.cursorrules' \
+            --exclude='LICENSE' \
+            --exclude='.gitignore' \
+            --exclude='README.md' \
+            --exclude='node_modules' \
+            --exclude='vendor' \
+            --exclude='*.md' \
+            ./ \
+            ${{ vars.SFTP_USERNAME }}@${{ vars.SFTP_SERVER }}:${{ vars.SFTP_REMOTE_PLUGIN_PATH }}/
+
+      - name: Cleanup
+        run: |
+          rm -f ~/.ssh/deploy_key
+

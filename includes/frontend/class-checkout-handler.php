@@ -1,0 +1,181 @@
+<?php
+/**
+ * Checkout Handler Class
+ *
+ * Handles URL parameter-based pre-selection of pickup locations
+ *
+ * @package WC_Local_Pickup_Costs
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+/**
+ * WC_LPC_Checkout_Handler class
+ */
+class WC_LPC_Checkout_Handler {
+
+	/**
+	 * Instance
+	 *
+	 * @var WC_LPC_Checkout_Handler
+	 */
+	private static $instance = null;
+
+	/**
+	 * Selected location ID
+	 *
+	 * @var string
+	 */
+	private $selected_location = '';
+
+	/**
+	 * Get instance
+	 *
+	 * @return WC_LPC_Checkout_Handler
+	 */
+	public static function instance() {
+		if ( is_null( self::$instance ) ) {
+			self::$instance = new self();
+		}
+		return self::$instance;
+	}
+
+	/**
+	 * Constructor
+	 */
+	private function __construct() {
+		$this->init_hooks();
+	}
+
+	/**
+	 * Initialize hooks
+	 */
+	private function init_hooks() {
+		add_action( 'wp', array( $this, 'check_url_parameter' ) );
+		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
+	}
+
+	/**
+	 * Check URL parameter for pickup location
+	 */
+	public function check_url_parameter() {
+		// Only process on checkout page
+		if ( ! is_checkout() ) {
+			return;
+		}
+
+		// Check for pickup_location parameter
+		if ( isset( $_GET['pickup_location'] ) ) {
+			$this->selected_location = sanitize_text_field( wp_unslash( $_GET['pickup_location'] ) );
+
+			// Validate that the location exists
+			if ( $this->is_valid_location( $this->selected_location ) ) {
+				// Store in session or transient for JavaScript to pick up
+				WC()->session->set( 'wc_lpc_selected_location', $this->selected_location );
+			}
+		}
+	}
+
+	/**
+	 * Validate that the location ID exists and is enabled
+	 *
+	 * @param string $location_id Location ID to validate.
+	 * @return bool True if valid, false otherwise.
+	 */
+	private function is_valid_location( $location_id ) {
+		$locations = $this->get_local_pickup_locations();
+
+		foreach ( $locations as $location ) {
+			if ( (string) $location['instance_id'] === (string) $location_id ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Get all local pickup locations
+	 *
+	 * @return array Array of pickup locations.
+	 */
+	private function get_local_pickup_locations() {
+		$locations = array();
+
+		// Get all shipping zones
+		$zones = WC_Shipping_Zones::get_zones();
+
+		foreach ( $zones as $zone_data ) {
+			if ( isset( $zone_data['shipping_methods'] ) ) {
+				foreach ( $zone_data['shipping_methods'] as $method ) {
+					if ( $method instanceof WC_Shipping_Local_Pickup ) {
+						$locations[] = array(
+							'instance_id' => $method->instance_id,
+							'id'          => $method->get_instance_option( 'instance_id' ),
+							'title'       => $method->get_instance_option( 'title' ) ? $method->get_instance_option( 'title' ) : $method->method_title,
+							'zone_id'     => $zone_data['id'],
+						);
+					}
+				}
+			}
+		}
+
+		// Also check the "Rest of the World" zone
+		$worldwide_zone = WC_Shipping_Zones::get_zone_by( 'zone_id', 0 );
+
+		if ( $worldwide_zone ) {
+			$methods = $worldwide_zone->get_shipping_methods();
+
+			foreach ( $methods as $method ) {
+				if ( $method instanceof WC_Shipping_Local_Pickup ) {
+					$locations[] = array(
+						'instance_id' => $method->instance_id,
+						'id'          => $method->get_instance_option( 'instance_id' ),
+						'title'       => $method->get_instance_option( 'title' ) ? $method->get_instance_option( 'title' ) : $method->method_title,
+						'zone_id'     => 0,
+					);
+				}
+			}
+		}
+
+		return $locations;
+	}
+
+	/**
+	 * Enqueue scripts for checkout
+	 */
+	public function enqueue_scripts() {
+		// Only enqueue on checkout page
+		if ( ! is_checkout() ) {
+			return;
+		}
+
+		$selected_location = WC()->session->get( 'wc_lpc_selected_location' );
+
+		if ( $selected_location ) {
+			// Enqueue checkout script
+			wp_enqueue_script(
+				'wc-lpc-checkout',
+				WC_LPC_PLUGIN_URL . 'assets/js/checkout-preselect.js',
+				array( 'jquery', 'woocommerce', 'wc-checkout' ),
+				WC_LPC_VERSION,
+				true
+			);
+
+			// Localize script with selected location
+			wp_localize_script(
+				'wc-lpc-checkout',
+				'wc_lpc_data',
+				array(
+					'selected_location' => $selected_location,
+				)
+			);
+
+			// Clear session after passing to JavaScript
+			WC()->session->__unset( 'wc_lpc_selected_location' );
+		}
+	}
+}
+
