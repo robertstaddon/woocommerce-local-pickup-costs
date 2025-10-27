@@ -145,7 +145,10 @@ class WC_LPC_Admin_Settings {
 	 */
 	public static function output_location_cost_field( $value ) {
 		$location_index = str_replace( 'wc_lpc_location_cost_', '', $value['id'] );
-		$current_cost = isset( $value['default'] ) ? $value['default'] : '';
+		
+		// Get current cost from the database
+		$location_costs = get_option( 'wc_lpc_location_costs', array() );
+		$current_cost = isset( $location_costs[ $location_index ] ) ? $location_costs[ $location_index ] : '';
 		
 		?>
 		<tr valign="top">
