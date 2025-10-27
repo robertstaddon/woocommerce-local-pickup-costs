@@ -61,9 +61,12 @@ class WC_LPC_Cost_Handler {
 	 * @return void
 	 */
 	public function apply_custom_pickup_cost( $order, $request ) {
-		// DEBUG: Log the entire request to see what data we have
+		// DEBUG: Log specific data to avoid memory issues
 		if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-			error_log( 'WC LPC - Request data: ' . print_r( $request, true ) );
+			// Log only specific properties to avoid memory exhaustion
+			$request_array = $request->get_json_params();
+			error_log( 'WC LPC - Shipping method: ' . ( isset( $request_array['shipping_method'] ) ? print_r( $request_array['shipping_method'], true ) : 'not set' ) );
+			error_log( 'WC LPC - Extensions: ' . ( isset( $request_array['extensions'] ) ? print_r( $request_array['extensions'], true ) : 'not set' ) );
 			error_log( 'WC LPC - Order shipping method: ' . print_r( $order->get_shipping_method(), true ) );
 		}
 
