@@ -23,11 +23,20 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Define constants
-define( 'WC_LPC_VERSION', '1.0.0' );
+define( 'WC_LPC_VERSION', '1.0.1' );
 define( 'WC_LPC_PLUGIN_FILE', __FILE__ );
 define( 'WC_LPC_PLUGIN_PATH', plugin_dir_path( __FILE__ ) );
 define( 'WC_LPC_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'WC_LPC_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
+
+/**
+ * Declare HPOS compatibility
+ */
+add_action( 'before_woocommerce_init', function() {
+	if ( class_exists( \Automattic\WooCommerce\Utilities\FeaturesUtil::class ) ) {
+		\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'custom_order_tables', __FILE__, true );
+	}
+} );
 
 /**
  * Check if WooCommerce is active
