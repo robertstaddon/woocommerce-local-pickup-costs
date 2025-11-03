@@ -24,6 +24,13 @@ class WC_LPC_Cost_Handler {
 	private static $instance = null;
 
 	/**
+	 * Whether hooks have been initialized
+	 *
+	 * @var bool
+	 */
+	private static $hooks_initialized = false;
+
+	/**
 	 * Get instance
 	 *
 	 * @return WC_LPC_Cost_Handler
@@ -46,6 +53,14 @@ class WC_LPC_Cost_Handler {
 	 * Initialize hooks
 	 */
 	private function init_hooks() {
+		// Prevent duplicate hook registration
+		if ( self::$hooks_initialized ) {
+			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+				error_log( 'WC LPC - Cost Handler hooks already initialized, skipping' );
+			}
+			return;
+		}
+
 		if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
 			error_log( 'WC LPC - Cost Handler hooks being initialized' );
 		}
@@ -55,6 +70,9 @@ class WC_LPC_Cost_Handler {
 		
 		// Hook to modify shipping rates before they're displayed in cart/checkout
 		add_filter( 'woocommerce_shipping_package_rates', array( $this, 'modify_pickup_rates_for_blocks' ), 100, 2 );
+
+		// Mark hooks as initialized
+		self::$hooks_initialized = true;
 
 		if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
 			error_log( 'WC LPC - Cost Handler hooks registered: woocommerce_shipping_package_rates filter' );
