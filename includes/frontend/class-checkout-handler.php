@@ -55,6 +55,7 @@ class WC_LPC_Checkout_Handler {
 	private function init_hooks() {
 		add_action( 'wp', array( $this, 'check_url_parameter' ) );
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
+		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_blocks_script' ) );
 	}
 
 	/**
@@ -158,6 +159,23 @@ class WC_LPC_Checkout_Handler {
 			// Clear session after passing to JavaScript
 			WC()->session->__unset( 'wc_lpc_selected_location' );
 		}
+	}
+
+	/**
+	 * Enqueue Blocks integration script to trigger Store API cart updates
+	 */
+	public function enqueue_blocks_script() {
+		if ( ! is_checkout() ) {
+			return;
+		}
+
+		wp_enqueue_script(
+			'wc-lpc-blocks',
+			WC_LPC_PLUGIN_URL . 'assets/js/lpc-blocks.js',
+			array(),
+			WC_LPC_VERSION,
+			true
+		);
 	}
 }
 

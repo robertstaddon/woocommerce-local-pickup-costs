@@ -68,6 +68,9 @@ class WC_LPC_Cost_Handler {
         // Hook to modify shipping rates before they're displayed in cart/checkout
         add_filter( 'woocommerce_shipping_package_rates', array( $this, 'modify_pickup_rates_for_blocks' ), 100, 2 );
 
+		// Register Store API update callback to force recalculation on-demand from Checkout Blocks
+		add_action( 'woocommerce_blocks_loaded', array( $this, 'register_store_api_update_callback' ) );
+
         // Set per-request guard
         if ( ! defined( 'WC_LPC_COST_HANDLER_HOOKS_ADDED' ) ) {
             define( 'WC_LPC_COST_HANDLER_HOOKS_ADDED', true );
@@ -211,6 +214,63 @@ class WC_LPC_Cost_Handler {
 			// Save location index as order meta for reference
 			$order->update_meta_data( 'wc_lpc_pickup_location_index', $location_index );
 			$order->update_meta_data( 'wc_lpc_original_pickup_cost', $current_total );
+		}
+	}
+
+	/**
+	 * Register Store API update callback (Blocks cart update on-demand)
+	 */
+	public function register_store_api_update_callback() {
+		if ( ! function_exists( 'woocommerce_store_api_register_update_callback' ) ) {
+			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+				error_log( 'WC LPC - Store API register_update_callback not available' );
+			}
+			return;
+		}
+
+		woocommerce_store_api_register_update_callback(
+			array(
+				'namespace' => 'wc-lpc',
+				'callback'  => array( $this, 'handle_store_api_update' ),
+			)
+		);
+
+		if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+			error_log( 'WC LPC - Store API update callback registered (namespace: wc-lpc)' );
+		}
+	}
+
+	/**
+	 * Handle Store API update (triggered by extensionCartUpdate)
+	 *
+	 * @param array $data Data passed from client.
+	 * @return void
+	 */
+	public function handle_store_api_update( $data ) {
+		if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+			$request_uri = isset( $_SERVER['REQUEST_URI'] ) ? $_SERVER['REQUEST_URI'] : 'unknown';
+			$doing_ajax  = ( defined( 'DOING_AJAX' ) && DOING_AJAX ) ? 'yes' : 'no';
+			$in_admin    = is_admin() ? 'yes' : 'no';
+			error_log( 'WC LPC - handle_store_api_update() CALLED' );
+			error_log( 'WC LPC - handle_store_api_update Context: REQUEST_URI=' . $request_uri . ', is_admin=' . $in_admin . ', DOING_AJAX=' . $doing_ajax );
+			error_log( 'WC LPC - handle_store_api_update Data: ' . wp_json_encode( $data ) );
+		}
+
+		// Optionally persist index for troubleshooting/consistency
+		$pickup_index = isset( $data['pickup_location_index'] ) ? intval( $data['pickup_location_index'] ) : null;
+		if ( null !== $pickup_index && WC()->session ) {
+			WC()->session->set( 'wc_lpc_last_pickup_index', $pickup_index );
+			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+				error_log( 'WC LPC - Stored wc_lpc_last_pickup_index=' . $pickup_index . ' in session' );
+			}
+		}
+
+		// Recalculate totals to invoke shipping rates filter
+		if ( WC()->cart ) {
+			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+				error_log( 'WC LPC - Recalculating cart totals via handle_store_api_update' );
+			}
+			WC()->cart->calculate_totals();
 		}
 	}
 

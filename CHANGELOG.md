@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.3.7] - 2025-01-XX
 
 ### Added
+- Store API on-demand update integration: registers `wc-lpc` update callback to force recalculation when pickup location changes
+- Frontend Blocks script (`assets/js/lpc-blocks.js`) that listens for pickup location selection, logs events, and calls `extensionCartUpdate`
 - Per-request hook guard using `WC_LPC_COST_HANDLER_HOOKS_ADDED` to prevent duplicate registrations when AJAX triggers multiple inits
 - Entry logs for `apply_custom_pickup_cost()` and `modify_pickup_rates_for_blocks()` with context (REQUEST_URI, is_admin, DOING_AJAX)
 - More explicit early-return logging to aid troubleshooting on Checkout Blocks
