@@ -24,13 +24,6 @@ class WC_LPC_Cost_Handler {
 	private static $instance = null;
 
 	/**
-	 * Whether hooks have been initialized
-	 *
-	 * @var bool
-	 */
-	private static $hooks_initialized = false;
-
-	/**
 	 * Get instance
 	 *
 	 * @return WC_LPC_Cost_Handler
@@ -53,10 +46,14 @@ class WC_LPC_Cost_Handler {
 	 * Initialize hooks
 	 */
 	private function init_hooks() {
-		// Prevent duplicate hook registration
-		if ( self::$hooks_initialized ) {
+		// Check if hooks are already registered using WordPress's hook registry
+		// This is more reliable than static flags since it checks the actual WordPress hook system
+		$action_registered = has_action( 'woocommerce_store_api_checkout_update_order_from_request', array( $this, 'apply_custom_pickup_cost' ) );
+		$filter_registered = has_filter( 'woocommerce_shipping_package_rates', array( $this, 'modify_pickup_rates_for_blocks' ) );
+
+		if ( $action_registered || $filter_registered ) {
 			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-				error_log( 'WC LPC - Cost Handler hooks already initialized, skipping' );
+				error_log( 'WC LPC - Cost Handler hooks already registered (action: ' . ( $action_registered ? 'yes' : 'no' ) . ', filter: ' . ( $filter_registered ? 'yes' : 'no' ) . '), skipping' );
 			}
 			return;
 		}
@@ -70,9 +67,6 @@ class WC_LPC_Cost_Handler {
 		
 		// Hook to modify shipping rates before they're displayed in cart/checkout
 		add_filter( 'woocommerce_shipping_package_rates', array( $this, 'modify_pickup_rates_for_blocks' ), 100, 2 );
-
-		// Mark hooks as initialized
-		self::$hooks_initialized = true;
 
 		if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
 			error_log( 'WC LPC - Cost Handler hooks registered: woocommerce_shipping_package_rates filter' );
