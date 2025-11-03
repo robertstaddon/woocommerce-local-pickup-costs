@@ -242,57 +242,33 @@ class WC_LPC_Cost_Handler {
 				continue;
 			}
 
-			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-				error_log( 'WC LPC Cart - Found pickup_location rate!' );
-				error_log( 'WC LPC Cart - Rate object class: ' . get_class( $rate ) );
-				error_log( 'WC LPC Cart - Rate label: ' . ( isset( $rate->label ) ? $rate->label : 'not set' ) );
-				error_log( 'WC LPC Cart - Rate cost: ' . ( isset( $rate->cost ) ? $rate->cost : 'not set' ) );
-				error_log( 'WC LPC Cart - Rate instance_id: ' . ( isset( $rate->instance_id ) ? $rate->instance_id : 'not set' ) );
-				error_log( 'WC LPC Cart - Rate meta_data: ' . print_r( isset( $rate->meta_data ) ? $rate->meta_data : 'not set', true ) );
-				
-				// Log all public properties
-				$rate_props = get_object_vars( $rate );
-				error_log( 'WC LPC Cart - Rate object properties: ' . print_r( array_keys( $rate_props ), true ) );
-				
-				// Try to extract index from rate ID
-				$rate_id_parts = explode( ':', $rate_id );
-				error_log( 'WC LPC Cart - Rate ID parts (exploded): ' . print_r( $rate_id_parts, true ) );
-				if ( count( $rate_id_parts ) >= 2 ) {
-					$potential_index = $rate_id_parts[1];
-					error_log( 'WC LPC Cart - Potential index from rate ID: ' . $potential_index );
-					error_log( 'WC LPC Cart - Is numeric? ' . ( is_numeric( $potential_index ) ? 'yes' : 'no' ) );
-				}
-			}
-
-			// Get the pickup location name from rate meta
-			// In WooCommerce Blocks, the location name is often in the rate label or meta
-			$pickup_location_name = null;
-
-			// Try to get from rate meta_data if available
-			if ( isset( $rate->meta_data ) && is_array( $rate->meta_data ) ) {
-				if ( isset( $rate->meta_data['pickup_location'] ) ) {
-					$pickup_location_name = $rate->meta_data['pickup_location'];
-				}
-			}
-
-			// If not found in meta, try to extract from rate label
-			// Format is usually "Pickup (Location Name)"
-			if ( null === $pickup_location_name && isset( $rate->label ) ) {
-				// Try to extract name from label like "Pickup (Jones)"
-				if ( preg_match( '/\(([^)]+)\)/', $rate->label, $matches ) ) {
-					$pickup_location_name = $matches[1];
-				}
-			}
-
-			if ( empty( $pickup_location_name ) ) {
+			// Extract location index directly from rate ID
+			// Rate IDs are in format: pickup_location:0, pickup_location:1, etc.
+			$rate_id_parts = explode( ':', $rate_id );
+			
+			if ( count( $rate_id_parts ) < 2 ) {
 				if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-					error_log( 'WC LPC Cart - Could not extract location name from rate: ' . $rate_id );
+					error_log( 'WC LPC Cart - Rate ID does not contain index separator: ' . $rate_id );
 				}
 				continue;
 			}
 
+			$location_index = $rate_id_parts[1];
+
+			if ( ! is_numeric( $location_index ) ) {
+				if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+					error_log( 'WC LPC Cart - Rate ID index is not numeric: ' . $location_index );
+				}
+				continue;
+			}
+
+			// Convert to integer for array access
+			$location_index = intval( $location_index );
+
 			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-				error_log( 'WC LPC Cart - Pickup location name: ' . $pickup_location_name );
+				error_log( 'WC LPC Cart - Extracted location index from rate ID: ' . $location_index );
+				error_log( 'WC LPC Cart - Rate object class: ' . get_class( $rate ) );
+				error_log( 'WC LPC Cart - Rate label: ' . ( isset( $rate->label ) ? $rate->label : 'not set' ) );
 			}
 
 			// Get current cost before modification
@@ -302,21 +278,10 @@ class WC_LPC_Cost_Handler {
 				error_log( 'WC LPC Cart - Current rate cost: ' . $current_cost );
 			}
 
-			// Find the location index by matching the name
-			$location_index = null;
-			foreach ( $pickup_locations as $index => $location ) {
-				if ( isset( $location['name'] ) && $location['name'] === $pickup_location_name ) {
-					$location_index = $index;
-					if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-						error_log( 'WC LPC Cart - Found matching location at index: ' . $location_index );
-					}
-					break;
-				}
-			}
-
-			if ( null === $location_index ) {
+			// Verify the location index exists in our locations array
+			if ( ! isset( $pickup_locations[ $location_index ] ) ) {
 				if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-					error_log( 'WC LPC Cart - No matching location found for: ' . $pickup_location_name );
+					error_log( 'WC LPC Cart - Location index ' . $location_index . ' not found in pickup_locations array' );
 				}
 				continue;
 			}

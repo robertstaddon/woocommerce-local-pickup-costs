@@ -5,6 +5,16 @@ All notable changes to the WooCommerce Local Pickup Costs plugin will be documen
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.3] - 2025-01-XX
+
+### Fixed
+- Fixed cost override not displaying in cart/checkout: Now extracts location index directly from rate ID (`pickup_location:0` → index `0`) instead of unreliable location name matching
+- Removed location name extraction and matching logic that was causing all locations to show default $2.00 cost
+
+### Added
+- Comprehensive debug logging in `modify_pickup_rates_for_blocks()` method to output all available rate properties
+- Debug output includes: rate ID, extracted location index, rate object class, label, and cost values for troubleshooting
+
 ## [1.3.2] - 2025-01-XX
 
 ### Changed
