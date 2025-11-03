@@ -149,14 +149,13 @@ class WC_LPC_Admin_Settings {
 				<table class="wc_shipping widefat wp-list-table" cellspacing="0">
 					<thead>
 						<tr>
-							<th class="sort" width="1%"></th>
 							<th class="name"><?php esc_html_e( 'Location Name', 'woocommerce-local-pickup-costs' ); ?></th>
 							<th class="address"><?php esc_html_e( 'Address', 'woocommerce-local-pickup-costs' ); ?></th>
 							<th class="status"><?php esc_html_e( 'Status', 'woocommerce-local-pickup-costs' ); ?></th>
 							<th class="cost"><?php esc_html_e( 'Cost Override', 'woocommerce-local-pickup-costs' ); ?></th>
 						</tr>
 					</thead>
-					<tbody class="ui-sortable">
+					<tbody>
 						<?php
 						foreach ( $pickup_locations as $location ) {
 							$location_index = $location['index'];
@@ -166,7 +165,6 @@ class WC_LPC_Admin_Settings {
 							$current_cost    = isset( $location_costs[ $location_index ] ) ? $location_costs[ $location_index ] : '';
 							?>
 							<tr>
-								<td class="sort" width="1%"></td>
 								<td class="name">
 									<strong><?php echo esc_html( $location_name ); ?></strong>
 								</td>
@@ -175,9 +173,9 @@ class WC_LPC_Admin_Settings {
 								</td>
 								<td class="status">
 									<?php if ( $is_enabled ) : ?>
-										<span class="woocommerce-input-toggle woocommerce-input-toggle--enabled" aria-label="<?php esc_attr_e( 'Enabled', 'woocommerce-local-pickup-costs' ); ?>"><?php esc_html_e( 'Enabled', 'woocommerce-local-pickup-costs' ); ?></span>
+										<span class="status-enabled" aria-label="<?php esc_attr_e( 'Enabled', 'woocommerce-local-pickup-costs' ); ?>"></span>
 									<?php else : ?>
-										<span class="woocommerce-input-toggle woocommerce-input-toggle--disabled" aria-label="<?php esc_attr_e( 'Disabled', 'woocommerce-local-pickup-costs' ); ?>"><?php esc_html_e( 'Disabled', 'woocommerce-local-pickup-costs' ); ?></span>
+										<span class="status-disabled" aria-label="<?php esc_attr_e( 'Disabled', 'woocommerce-local-pickup-costs' ); ?>"></span>
 									<?php endif; ?>
 								</td>
 								<td class="cost">

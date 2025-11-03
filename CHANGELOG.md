@@ -5,6 +5,13 @@ All notable changes to the WooCommerce Local Pickup Costs plugin will be documen
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.1] - 2025-01-XX
+
+### Changed
+- Removed sort column from admin table for cleaner layout
+- Status column now uses checkbox-style toggles with `status-enabled` and `status-disabled` classes matching WooCommerce admin.css styling
+- Replaced text-based status indicators with visual checkbox icons
+
 ## [1.3.0] - 2025-01-XX
 
 ### Fixed
