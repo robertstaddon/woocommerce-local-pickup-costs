@@ -5,6 +5,13 @@ All notable changes to the WooCommerce Local Pickup Costs plugin will be documen
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.7] - 2025-01-XX
+
+### Added
+- Per-request hook guard using `WC_LPC_COST_HANDLER_HOOKS_ADDED` to prevent duplicate registrations when AJAX triggers multiple inits
+- Entry logs for `apply_custom_pickup_cost()` and `modify_pickup_rates_for_blocks()` with context (REQUEST_URI, is_admin, DOING_AJAX)
+- More explicit early-return logging to aid troubleshooting on Checkout Blocks
+
 ## [1.3.6] - 2025-01-XX
 
 ### Fixed

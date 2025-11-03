@@ -45,34 +45,39 @@ class WC_LPC_Cost_Handler {
 	/**
 	 * Initialize hooks
 	 */
-	private function init_hooks() {
-		// Check if hooks are already registered using WordPress's hook registry
-		// This is more reliable than static flags since it checks the actual WordPress hook system
-		$action_registered = has_action( 'woocommerce_store_api_checkout_update_order_from_request', array( $this, 'apply_custom_pickup_cost' ) );
-		$filter_registered = has_filter( 'woocommerce_shipping_package_rates', array( $this, 'modify_pickup_rates_for_blocks' ) );
+    private function init_hooks() {
+        // Per-request guard: prevent duplicate registration even if instantiated multiple times in the same request
+        if ( defined( 'WC_LPC_COST_HANDLER_HOOKS_ADDED' ) && WC_LPC_COST_HANDLER_HOOKS_ADDED ) {
+            if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+                error_log( 'WC LPC - Cost Handler hooks already registered (per-request guard), skipping' );
+            }
+            return;
+        }
 
-		if ( $action_registered || $filter_registered ) {
-			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-				error_log( 'WC LPC - Cost Handler hooks already registered (action: ' . ( $action_registered ? 'yes' : 'no' ) . ', filter: ' . ( $filter_registered ? 'yes' : 'no' ) . '), skipping' );
-			}
-			return;
-		}
+        if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+            $request_uri = isset( $_SERVER['REQUEST_URI'] ) ? $_SERVER['REQUEST_URI'] : 'unknown';
+            $doing_ajax  = ( defined( 'DOING_AJAX' ) && DOING_AJAX ) ? 'yes' : 'no';
+            $in_admin    = is_admin() ? 'yes' : 'no';
+            error_log( 'WC LPC - Cost Handler hooks being initialized' );
+            error_log( 'WC LPC - Context: REQUEST_URI=' . $request_uri . ', is_admin=' . $in_admin . ', DOING_AJAX=' . $doing_ajax );
+        }
 
-		if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-			error_log( 'WC LPC - Cost Handler hooks being initialized' );
-		}
+        // Hook for WooCommerce Blocks checkout (order finalization)
+        add_action( 'woocommerce_store_api_checkout_update_order_from_request', array( $this, 'apply_custom_pickup_cost' ), 10, 2 );
+        
+        // Hook to modify shipping rates before they're displayed in cart/checkout
+        add_filter( 'woocommerce_shipping_package_rates', array( $this, 'modify_pickup_rates_for_blocks' ), 100, 2 );
 
-		// Hook for WooCommerce Blocks checkout (order finalization)
-		add_action( 'woocommerce_store_api_checkout_update_order_from_request', array( $this, 'apply_custom_pickup_cost' ), 10, 2 );
-		
-		// Hook to modify shipping rates before they're displayed in cart/checkout
-		add_filter( 'woocommerce_shipping_package_rates', array( $this, 'modify_pickup_rates_for_blocks' ), 100, 2 );
+        // Set per-request guard
+        if ( ! defined( 'WC_LPC_COST_HANDLER_HOOKS_ADDED' ) ) {
+            define( 'WC_LPC_COST_HANDLER_HOOKS_ADDED', true );
+        }
 
-		if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-			error_log( 'WC LPC - Cost Handler hooks registered: woocommerce_shipping_package_rates filter' );
-			error_log( 'WC LPC - Cost Handler hooks registered: woocommerce_store_api_checkout_update_order_from_request action' );
-		}
-	}
+        if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+            error_log( 'WC LPC - Cost Handler hooks registered: woocommerce_shipping_package_rates filter' );
+            error_log( 'WC LPC - Cost Handler hooks registered: woocommerce_store_api_checkout_update_order_from_request action' );
+        }
+    }
 
 	/**
 	 * Apply custom pickup cost for Checkout Blocks
@@ -82,6 +87,13 @@ class WC_LPC_Cost_Handler {
 	 * @return void
 	 */
 	public function apply_custom_pickup_cost( $order, $request ) {
+        if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+            $request_uri = isset( $_SERVER['REQUEST_URI'] ) ? $_SERVER['REQUEST_URI'] : 'unknown';
+            $doing_ajax  = ( defined( 'DOING_AJAX' ) && DOING_AJAX ) ? 'yes' : 'no';
+            $in_admin    = is_admin() ? 'yes' : 'no';
+            error_log( 'WC LPC - apply_custom_pickup_cost() CALLED' );
+            error_log( 'WC LPC - apply_custom_pickup_cost Context: REQUEST_URI=' . $request_uri . ', is_admin=' . $in_admin . ', DOING_AJAX=' . $doing_ajax );
+        }
 		// Get saved location costs
 		$location_costs = get_option( 'wc_lpc_location_costs', array() );
 
@@ -217,6 +229,10 @@ class WC_LPC_Cost_Handler {
 		if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
 			error_log( 'WC LPC Cart - ============================================' );
 			error_log( 'WC LPC Cart - modify_pickup_rates_for_blocks() CALLED' );
+            $request_uri = isset( $_SERVER['REQUEST_URI'] ) ? $_SERVER['REQUEST_URI'] : 'unknown';
+            $doing_ajax  = ( defined( 'DOING_AJAX' ) && DOING_AJAX ) ? 'yes' : 'no';
+            $in_admin    = is_admin() ? 'yes' : 'no';
+            error_log( 'WC LPC Cart - Context: REQUEST_URI=' . $request_uri . ', is_admin=' . $in_admin . ', DOING_AJAX=' . $doing_ajax );
 			error_log( 'WC LPC Cart - Rates is array? ' . ( is_array( $rates ) ? 'yes' : 'no' ) );
 			error_log( 'WC LPC Cart - Rates count: ' . ( is_array( $rates ) ? count( $rates ) : 'N/A' ) );
 			error_log( 'WC LPC Cart - Package keys: ' . print_r( is_array( $package ) ? array_keys( $package ) : 'not array', true ) );
