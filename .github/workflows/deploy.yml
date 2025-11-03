@@ -11,7 +11,7 @@ jobs:
     name: Deploy to Abundant Designs Beta Server
     runs-on: ubuntu-latest
     environment:
-      name: Abundant Designs Beta Server
+      name: Our Fathers Farm
 
     steps:
       - name: Checkout code
