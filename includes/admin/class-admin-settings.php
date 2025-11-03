@@ -102,7 +102,7 @@ class WC_LPC_Admin_Settings {
 			array(
 				'title' => __( 'Local Pickup Location Costs', 'woocommerce-local-pickup-costs' ),
 				'type'  => 'title',
-				'desc'  => __( 'Set custom costs for each local pickup location. Leave blank to use the global cost from Local Pickup settings.', 'woocommerce-local-pickup-costs' ),
+				'desc'  => __( 'Set custom costs for each local pickup location. Leave blank to use the global cost from Local Pickup settings. Set to 0 to make it free.', 'woocommerce-local-pickup-costs' ),
 				'id'    => 'wc_lpc_title',
 			),
 		);
@@ -151,7 +151,7 @@ class WC_LPC_Admin_Settings {
 						<tr>
 							<th class="name"><?php esc_html_e( 'Location Name', 'woocommerce-local-pickup-costs' ); ?></th>
 							<th class="address"><?php esc_html_e( 'Address', 'woocommerce-local-pickup-costs' ); ?></th>
-							<th class="status"><?php esc_html_e( 'Status', 'woocommerce-local-pickup-costs' ); ?></th>
+							<th class="status" style="text-align: left; width: 4em;"><?php esc_html_e( 'Status', 'woocommerce-local-pickup-costs' ); ?></th>
 							<th class="cost"><?php esc_html_e( 'Cost Override', 'woocommerce-local-pickup-costs' ); ?></th>
 						</tr>
 					</thead>
@@ -171,7 +171,7 @@ class WC_LPC_Admin_Settings {
 								<td class="address">
 									<?php echo esc_html( $location_address ); ?>
 								</td>
-								<td class="status">
+								<td class="status" style="text-align: left; width: 4em;">
 									<?php if ( $is_enabled ) : ?>
 										<span class="status-enabled" aria-label="<?php esc_attr_e( 'Enabled', 'woocommerce-local-pickup-costs' ); ?>"></span>
 									<?php else : ?>
@@ -186,7 +186,6 @@ class WC_LPC_Admin_Settings {
 										placeholder="<?php esc_attr_e( 'Use global cost', 'woocommerce-local-pickup-costs' ); ?>"
 										class="input-text regular-input wc_input_price"
 									/>
-									<p class="description"><?php esc_html_e( 'Leave blank to use global cost. Set to 0 for free.', 'woocommerce-local-pickup-costs' ); ?></p>
 								</td>
 							</tr>
 							<?php
