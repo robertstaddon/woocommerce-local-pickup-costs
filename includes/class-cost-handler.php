@@ -218,6 +218,8 @@ class WC_LPC_Cost_Handler {
 
 		if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
 			error_log( 'WC LPC Cart - Processing ' . count( $rates ) . ' shipping rate(s)' );
+			error_log( 'WC LPC Cart - Location costs array: ' . print_r( $location_costs, true ) );
+			error_log( 'WC LPC Cart - Pickup locations array keys: ' . print_r( array_keys( $pickup_locations ), true ) );
 		}
 
 		// Loop through all shipping rates
@@ -228,7 +230,11 @@ class WC_LPC_Cost_Handler {
 			}
 
 			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-				error_log( 'WC LPC Cart - Checking rate ID: ' . $rate_id . ', method ID: ' . $rate->method_id );
+				error_log( 'WC LPC Cart - ========================================' );
+				error_log( 'WC LPC Cart - Rate ID: ' . $rate_id );
+				error_log( 'WC LPC Cart - Rate ID type: ' . gettype( $rate_id ) );
+				error_log( 'WC LPC Cart - Rate ID parts: ' . print_r( explode( ':', $rate_id ), true ) );
+				error_log( 'WC LPC Cart - Method ID: ' . $rate->method_id );
 			}
 
 			// Only process pickup_location methods
@@ -237,7 +243,25 @@ class WC_LPC_Cost_Handler {
 			}
 
 			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-				error_log( 'WC LPC Cart - Found pickup_location rate: ' . $rate_id );
+				error_log( 'WC LPC Cart - Found pickup_location rate!' );
+				error_log( 'WC LPC Cart - Rate object class: ' . get_class( $rate ) );
+				error_log( 'WC LPC Cart - Rate label: ' . ( isset( $rate->label ) ? $rate->label : 'not set' ) );
+				error_log( 'WC LPC Cart - Rate cost: ' . ( isset( $rate->cost ) ? $rate->cost : 'not set' ) );
+				error_log( 'WC LPC Cart - Rate instance_id: ' . ( isset( $rate->instance_id ) ? $rate->instance_id : 'not set' ) );
+				error_log( 'WC LPC Cart - Rate meta_data: ' . print_r( isset( $rate->meta_data ) ? $rate->meta_data : 'not set', true ) );
+				
+				// Log all public properties
+				$rate_props = get_object_vars( $rate );
+				error_log( 'WC LPC Cart - Rate object properties: ' . print_r( array_keys( $rate_props ), true ) );
+				
+				// Try to extract index from rate ID
+				$rate_id_parts = explode( ':', $rate_id );
+				error_log( 'WC LPC Cart - Rate ID parts (exploded): ' . print_r( $rate_id_parts, true ) );
+				if ( count( $rate_id_parts ) >= 2 ) {
+					$potential_index = $rate_id_parts[1];
+					error_log( 'WC LPC Cart - Potential index from rate ID: ' . $potential_index );
+					error_log( 'WC LPC Cart - Is numeric? ' . ( is_numeric( $potential_index ) ? 'yes' : 'no' ) );
+				}
 			}
 
 			// Get the pickup location name from rate meta
