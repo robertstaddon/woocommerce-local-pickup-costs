@@ -5,6 +5,28 @@ All notable changes to the WooCommerce Local Pickup Costs plugin will be documen
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.11] - 2025-01-XX
+
+### Fixed
+- Fixed pickup location selection not triggering price updates in Checkout Blocks
+- Changed event listeners to capture phase to intercept events before internal handlers stop propagation
+- Improved event delegation to handle dynamically-rendered pickup location radios
+
+### Added
+- Diagnostic probe script (`lpc-probe.js`) for debugging Checkout Blocks events (only loads when WP_DEBUG is enabled)
+- Enhanced logging with capture-phase indication for better troubleshooting
+
+## [1.3.10] - 2025-01-XX
+
+### Added
+- Diagnostic probe script for investigating Checkout Blocks event registration and state changes
+
+## [1.3.9] - 2025-01-XX
+
+### Fixed
+- Replaced container-based listener with delegated event handler for better reliability
+- Switched from console.debug to console.log for better visibility
+
 ## [1.3.7] - 2025-01-XX
 
 ### Added

@@ -17,12 +17,13 @@
 
 	function attachDelegatedListener() {
 		if (window.__wc_lpc_blocks_bound) return; // avoid duplicate binding
-		document.addEventListener('change', function (e) {
+
+		function handler(e) {
 			var el = e.target;
 			if (!isPickupRateRadio(el)) return;
 			var parts = String(el.value).split(':');
 			var idx = parts.length > 1 ? parseInt(parts[1], 10) : null;
-			log('Pickup radio changed', { value: el.value, idx: idx });
+			log('Pickup radio changed (capture)', { value: el.value, idx: idx });
 			if (idx === null || isNaN(idx)) return;
 			try {
 				var api = (window.wc && window.wc.blocksCheckout && window.wc.blocksCheckout.extensionCartUpdate)
@@ -43,9 +44,14 @@
 			} catch (err) {
 				log('Error calling extensionCartUpdate', err);
 			}
-		});
+		}
+
+		// Use capture phase to avoid being stopped by internal handlers
+		document.addEventListener('change', handler, true);
+		document.addEventListener('input', handler, true);
+		document.addEventListener('click', handler, true);
 		window.__wc_lpc_blocks_bound = true;
-		log('Delegated listener attached');
+		log('Delegated listener attached (capture)');
 	}
 
 	function init() {
