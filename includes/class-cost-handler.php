@@ -46,11 +46,20 @@ class WC_LPC_Cost_Handler {
 	 * Initialize hooks
 	 */
 	private function init_hooks() {
+		if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+			error_log( 'WC LPC - Cost Handler hooks being initialized' );
+		}
+
 		// Hook for WooCommerce Blocks checkout (order finalization)
 		add_action( 'woocommerce_store_api_checkout_update_order_from_request', array( $this, 'apply_custom_pickup_cost' ), 10, 2 );
 		
 		// Hook to modify shipping rates before they're displayed in cart/checkout
 		add_filter( 'woocommerce_shipping_package_rates', array( $this, 'modify_pickup_rates_for_blocks' ), 100, 2 );
+
+		if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+			error_log( 'WC LPC - Cost Handler hooks registered: woocommerce_shipping_package_rates filter' );
+			error_log( 'WC LPC - Cost Handler hooks registered: woocommerce_store_api_checkout_update_order_from_request action' );
+		}
 	}
 
 	/**
@@ -192,7 +201,19 @@ class WC_LPC_Cost_Handler {
 	 * @return array Modified rates array.
 	 */
 	public function modify_pickup_rates_for_blocks( $rates, $package ) {
+		// Always log that the filter was called (if WP_DEBUG is on)
+		if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+			error_log( 'WC LPC Cart - ============================================' );
+			error_log( 'WC LPC Cart - modify_pickup_rates_for_blocks() CALLED' );
+			error_log( 'WC LPC Cart - Rates is array? ' . ( is_array( $rates ) ? 'yes' : 'no' ) );
+			error_log( 'WC LPC Cart - Rates count: ' . ( is_array( $rates ) ? count( $rates ) : 'N/A' ) );
+			error_log( 'WC LPC Cart - Package keys: ' . print_r( is_array( $package ) ? array_keys( $package ) : 'not array', true ) );
+		}
+
 		if ( ! is_array( $rates ) || empty( $rates ) ) {
+			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+				error_log( 'WC LPC Cart - Early return: rates is not array or empty' );
+			}
 			return $rates;
 		}
 
@@ -201,7 +222,8 @@ class WC_LPC_Cost_Handler {
 
 		if ( empty( $location_costs ) ) {
 			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-				error_log( 'WC LPC Cart - No location costs saved' );
+				error_log( 'WC LPC Cart - Early return: No location costs saved' );
+				error_log( 'WC LPC Cart - Location costs option value: ' . print_r( $location_costs, true ) );
 			}
 			return $rates;
 		}
@@ -211,7 +233,8 @@ class WC_LPC_Cost_Handler {
 
 		if ( empty( $pickup_locations ) ) {
 			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-				error_log( 'WC LPC Cart - No pickup locations found in database' );
+				error_log( 'WC LPC Cart - Early return: No pickup locations found in database' );
+				error_log( 'WC LPC Cart - Pickup locations option value: ' . print_r( $pickup_locations, true ) );
 			}
 			return $rates;
 		}
