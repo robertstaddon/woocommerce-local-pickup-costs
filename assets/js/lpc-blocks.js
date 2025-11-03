@@ -1,62 +1,57 @@
 /* global wc */
 (function () {
 	function log() {
-		if (typeof console !== 'undefined' && console.debug) {
-			console.debug.apply(console, ['[WC LPC]'].concat([].slice.call(arguments)));
+		if (typeof console !== 'undefined' && console.log) {
+			console.log.apply(console, ['[WC LPC]'].concat([].slice.call(arguments)));
 		}
 	}
 
-	function getPickupIndexFromValue(value) {
-		if (typeof value !== 'string') return null;
-		var parts = value.split(':');
-		if (parts.length < 2) return null;
-		var idx = parseInt(parts[1], 10);
-		return isNaN(idx) ? null : idx;
+	function isPickupRateRadio(target) {
+		return (
+			target &&
+			target.tagName === 'INPUT' &&
+			target.type === 'radio' &&
+			/^pickup_location:\\d+/.test(String(target.value || ''))
+		);
 	}
 
-	function attachListeners(root) {
-		var container = root.querySelector('.wc-block-components-local-pickup-rates-control');
-		if (!container) return;
-		var radios = container.querySelectorAll('input[type="radio"][value^="pickup_location:"]');
-		if (!radios || !radios.length) {
-			log('No pickup radios found yet');
-			return;
-		}
-		radios.forEach(function (r) {
-			r.addEventListener('change', function (e) {
-				var value = e.target && e.target.value;
-				var idx = getPickupIndexFromValue(value);
-				log('Pickup radio changed', { value: value, idx: idx });
-				if (idx === null) return;
-				try {
-					var api = (window.wc && window.wc.blocksCheckout && window.wc.blocksCheckout.extensionCartUpdate) ? window.wc.blocksCheckout : null;
-					if (!api) {
-						log('blocksCheckout.extensionCartUpdate not available');
-						return;
-					}
-					api.extensionCartUpdate({
-						namespace: 'wc-lpc',
-						data: { pickup_location_index: idx },
-					}).then(function () {
+	function attachDelegatedListener() {
+		if (window.__wc_lpc_blocks_bound) return; // avoid duplicate binding
+		document.addEventListener('change', function (e) {
+			var el = e.target;
+			if (!isPickupRateRadio(el)) return;
+			var parts = String(el.value).split(':');
+			var idx = parts.length > 1 ? parseInt(parts[1], 10) : null;
+			log('Pickup radio changed', { value: el.value, idx: idx });
+			if (idx === null || isNaN(idx)) return;
+			try {
+				var api = (window.wc && window.wc.blocksCheckout && window.wc.blocksCheckout.extensionCartUpdate)
+					? window.wc.blocksCheckout
+					: null;
+				if (!api) {
+					log('blocksCheckout.extensionCartUpdate not available');
+					return;
+				}
+				api
+					.extensionCartUpdate({ namespace: 'wc-lpc', data: { pickup_location_index: idx } })
+					.then(function () {
 						log('extensionCartUpdate resolved');
-					}).catch(function (err) {
+					})
+					.catch(function (err) {
 						log('extensionCartUpdate error', err);
 					});
-				} catch (err) {
-					log('Error calling extensionCartUpdate', err);
-				}
-			});
+			} catch (err) {
+				log('Error calling extensionCartUpdate', err);
+			}
 		});
-		log('Attached pickup change listeners to', radios.length, 'inputs');
+		window.__wc_lpc_blocks_bound = true;
+		log('Delegated listener attached');
 	}
 
 	function init() {
-		var root = document;
-		attachListeners(root);
-		// Observe dynamic re-renders in blocks
-		var mo = new MutationObserver(function () {
-			attachListeners(root);
-		});
+		attachDelegatedListener();
+		// Observe dynamic re-renders (listener is delegated, this is mainly for debugging/consistency)
+		var mo = new MutationObserver(function () {});
 		mo.observe(document.body, { childList: true, subtree: true });
 		log('Initialized WC LPC Blocks script');
 	}

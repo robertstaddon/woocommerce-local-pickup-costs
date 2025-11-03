@@ -227,3 +227,8 @@ woocommerce-local-pickup-costs/
 - Provide context for WooCommerce-specific implementations
 - Use modern PHP features when appropriate (typed properties, return types, etc.)
 
+Helpful WooCommerce Checkout blocks documentation:
+https://developer.woocommerce.com/docs/apis/store-api/extending-store-api/extend-store-api-update-cart/
+https://developer.woocommerce.com/docs/block-development/extensible-blocks/cart-and-checkout-blocks/checkout-payment-methods/checkout-flow-and-events/
+https://developer.woocommerce.com/docs/block-development/extensible-blocks/cart-and-checkout-blocks/filters-in-cart-and-checkout/
+https://github.com/woocommerce/woocommerce/blob/trunk/plugins/woocommerce/client/blocks/packages/checkout/filter-registry/README.md
