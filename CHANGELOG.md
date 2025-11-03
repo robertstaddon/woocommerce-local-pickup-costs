@@ -5,6 +5,24 @@ All notable changes to the WooCommerce Local Pickup Costs plugin will be documen
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2025-01-XX
+
+### Fixed
+- Fixed cart display issue: Cost overrides now appear correctly in cart and checkout BEFORE order finalization
+- Added `woocommerce_shipping_package_rates` filter to modify rates at cart calculation stage
+- Customers now see correct override costs immediately when selecting pickup locations
+
+### Added
+- Redesigned admin settings page as a proper table layout
+- Table displays: Location Name, Address, Status (Enabled/Disabled), and Cost Override columns
+- All locations shown (enabled and disabled) for better visibility
+- Improved address formatting with proper city, state, postcode, and country display
+- Better visual status indicators using WooCommerce styling
+
+### Changed
+- Admin page now uses single table view instead of individual fields per location
+- Location retrieval now includes ALL locations (not just enabled) to show full status
+
 ## [1.2.0] - 2025-01-XX
 
 ### Fixed

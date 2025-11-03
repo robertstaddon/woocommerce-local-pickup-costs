@@ -46,8 +46,11 @@ class WC_LPC_Cost_Handler {
 	 * Initialize hooks
 	 */
 	private function init_hooks() {
-		// Hook for WooCommerce Blocks checkout
+		// Hook for WooCommerce Blocks checkout (order finalization)
 		add_action( 'woocommerce_store_api_checkout_update_order_from_request', array( $this, 'apply_custom_pickup_cost' ), 10, 2 );
+		
+		// Hook to modify shipping rates before they're displayed in cart/checkout
+		add_filter( 'woocommerce_shipping_package_rates', array( $this, 'modify_pickup_rates_for_blocks' ), 100, 2 );
 	}
 
 	/**
@@ -176,5 +179,147 @@ class WC_LPC_Cost_Handler {
 			$order->update_meta_data( 'wc_lpc_pickup_location_index', $location_index );
 			$order->update_meta_data( 'wc_lpc_original_pickup_cost', $current_total );
 		}
+	}
+
+	/**
+	 * Modify pickup rates for Blocks (cart/checkout display)
+	 *
+	 * This hook runs BEFORE rates are displayed, allowing us to modify costs
+	 * so customers see the correct override prices in cart and checkout.
+	 *
+	 * @param array $rates Array of shipping rates.
+	 * @param array $package Package data.
+	 * @return array Modified rates array.
+	 */
+	public function modify_pickup_rates_for_blocks( $rates, $package ) {
+		if ( ! is_array( $rates ) || empty( $rates ) ) {
+			return $rates;
+		}
+
+		// Get saved location costs
+		$location_costs = get_option( 'wc_lpc_location_costs', array() );
+
+		if ( empty( $location_costs ) ) {
+			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+				error_log( 'WC LPC Cart - No location costs saved' );
+			}
+			return $rates;
+		}
+
+		// Get all pickup locations to match names
+		$pickup_locations = get_option( 'pickup_location_pickup_locations', array() );
+
+		if ( empty( $pickup_locations ) ) {
+			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+				error_log( 'WC LPC Cart - No pickup locations found in database' );
+			}
+			return $rates;
+		}
+
+		if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+			error_log( 'WC LPC Cart - Processing ' . count( $rates ) . ' shipping rate(s)' );
+		}
+
+		// Loop through all shipping rates
+		foreach ( $rates as $rate_id => $rate ) {
+			// Check if this is a pickup_location method
+			if ( ! is_object( $rate ) || ! isset( $rate->method_id ) ) {
+				continue;
+			}
+
+			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+				error_log( 'WC LPC Cart - Checking rate ID: ' . $rate_id . ', method ID: ' . $rate->method_id );
+			}
+
+			// Only process pickup_location methods
+			if ( 'pickup_location' !== $rate->method_id ) {
+				continue;
+			}
+
+			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+				error_log( 'WC LPC Cart - Found pickup_location rate: ' . $rate_id );
+			}
+
+			// Get the pickup location name from rate meta
+			// In WooCommerce Blocks, the location name is often in the rate label or meta
+			$pickup_location_name = null;
+
+			// Try to get from rate meta_data if available
+			if ( isset( $rate->meta_data ) && is_array( $rate->meta_data ) ) {
+				if ( isset( $rate->meta_data['pickup_location'] ) ) {
+					$pickup_location_name = $rate->meta_data['pickup_location'];
+				}
+			}
+
+			// If not found in meta, try to extract from rate label
+			// Format is usually "Pickup (Location Name)"
+			if ( null === $pickup_location_name && isset( $rate->label ) ) {
+				// Try to extract name from label like "Pickup (Jones)"
+				if ( preg_match( '/\(([^)]+)\)/', $rate->label, $matches ) ) {
+					$pickup_location_name = $matches[1];
+				}
+			}
+
+			if ( empty( $pickup_location_name ) ) {
+				if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+					error_log( 'WC LPC Cart - Could not extract location name from rate: ' . $rate_id );
+				}
+				continue;
+			}
+
+			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+				error_log( 'WC LPC Cart - Pickup location name: ' . $pickup_location_name );
+			}
+
+			// Get current cost before modification
+			$current_cost = isset( $rate->cost ) ? floatval( $rate->cost ) : 0;
+
+			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+				error_log( 'WC LPC Cart - Current rate cost: ' . $current_cost );
+			}
+
+			// Find the location index by matching the name
+			$location_index = null;
+			foreach ( $pickup_locations as $index => $location ) {
+				if ( isset( $location['name'] ) && $location['name'] === $pickup_location_name ) {
+					$location_index = $index;
+					if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+						error_log( 'WC LPC Cart - Found matching location at index: ' . $location_index );
+					}
+					break;
+				}
+			}
+
+			if ( null === $location_index ) {
+				if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+					error_log( 'WC LPC Cart - No matching location found for: ' . $pickup_location_name );
+				}
+				continue;
+			}
+
+			// Check if we have a custom cost for this location
+			if ( ! isset( $location_costs[ $location_index ] ) || '' === $location_costs[ $location_index ] ) {
+				if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+					error_log( 'WC LPC Cart - No custom cost set for location index ' . $location_index );
+				}
+				continue;
+			}
+
+			// Apply the custom cost
+			$custom_cost = floatval( $location_costs[ $location_index ] );
+
+			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+				error_log( 'WC LPC Cart - Applying custom cost: ' . $custom_cost . ' (was ' . $current_cost . ')' );
+			}
+
+			// Update the rate cost
+			$rate->set_cost( $custom_cost );
+
+			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+				error_log( 'WC LPC Cart - Updated rate cost to: ' . $rate->cost );
+			}
+		}
+
+		return $rates;
 	}
 }

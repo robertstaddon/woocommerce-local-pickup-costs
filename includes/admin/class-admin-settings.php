@@ -58,9 +58,9 @@ class WC_LPC_Admin_Settings {
 	 * @param array $value Field value.
 	 */
 	public function output_custom_field( $value ) {
-		// Check if this is one of our location cost fields
-		if ( strpos( $value['id'], 'wc_lpc_location_cost_' ) === 0 ) {
-			self::output_location_cost_field( $value );
+		// Check if this is our locations table field
+		if ( 'wc_lpc_locations_table' === $value['id'] ) {
+			$this->render_location_costs_table();
 		}
 	}
 
@@ -96,7 +96,6 @@ class WC_LPC_Admin_Settings {
 	 */
 	private function render_settings_page() {
 		$pickup_locations = $this->get_local_pickup_locations();
-		$location_costs   = get_option( 'wc_lpc_location_costs', array() );
 
 		// Start with title
 		$settings = array(
@@ -116,17 +115,12 @@ class WC_LPC_Admin_Settings {
 				'id'    => 'wc_lpc_no_locations',
 			);
 		} else {
-			foreach ( $pickup_locations as $location ) {
-				$location_index = $location['index'];
-				$location_name = $location['title'];
-				
-				$settings[] = array(
-					'title'   => $location_name,
-					'id'      => 'wc_lpc_location_cost_' . $location_index,
-					'type'    => 'custom',
-					'default' => isset( $location_costs[ $location_index ] ) ? $location_costs[ $location_index ] : '',
-				);
-			}
+			// Single custom field that renders the entire table
+			$settings[] = array(
+				'title' => '',
+				'id'    => 'wc_lpc_locations_table',
+				'type'  => 'custom',
+			);
 		}
 
 		// End section
@@ -139,40 +133,118 @@ class WC_LPC_Admin_Settings {
 	}
 
 	/**
-	 * Output custom field for each location
-	 *
-	 * @param array $value Field value.
+	 * Render locations costs table
 	 */
-	public static function output_location_cost_field( $value ) {
-		$location_index = str_replace( 'wc_lpc_location_cost_', '', $value['id'] );
-		
-		// Get current cost from the database
-		$location_costs = get_option( 'wc_lpc_location_costs', array() );
-		$current_cost = isset( $location_costs[ $location_index ] ) ? $location_costs[ $location_index ] : '';
-		
+	private function render_location_costs_table() {
+		$pickup_locations = $this->get_local_pickup_locations();
+		$location_costs   = get_option( 'wc_lpc_location_costs', array() );
+
+		if ( empty( $pickup_locations ) ) {
+			return;
+		}
+
 		?>
 		<tr valign="top">
-			<th scope="row" class="titledesc">
-				<label><?php echo esc_html( $value['title'] ); ?></label>
-			</th>
-			<td class="forminp">
-				<input 
-					type="text" 
-					name="wc_lpc_location_costs[<?php echo esc_attr( $location_index ); ?>]" 
-					value="<?php echo esc_attr( $current_cost ); ?>" 
-					placeholder="<?php esc_attr_e( 'Use global cost', 'woocommerce-local-pickup-costs' ); ?>"
-					class="input-text regular-input"
-				/>
-				<p class="description"><?php esc_html_e( 'Enter a cost (e.g., 5.00) or leave blank to use the global cost. Set to 0 to make it free.', 'woocommerce-local-pickup-costs' ); ?></p>
+			<td class="forminp" colspan="2">
+				<table class="wc_shipping widefat wp-list-table" cellspacing="0">
+					<thead>
+						<tr>
+							<th class="sort" width="1%"></th>
+							<th class="name"><?php esc_html_e( 'Location Name', 'woocommerce-local-pickup-costs' ); ?></th>
+							<th class="address"><?php esc_html_e( 'Address', 'woocommerce-local-pickup-costs' ); ?></th>
+							<th class="status"><?php esc_html_e( 'Status', 'woocommerce-local-pickup-costs' ); ?></th>
+							<th class="cost"><?php esc_html_e( 'Cost Override', 'woocommerce-local-pickup-costs' ); ?></th>
+						</tr>
+					</thead>
+					<tbody class="ui-sortable">
+						<?php
+						foreach ( $pickup_locations as $location ) {
+							$location_index = $location['index'];
+							$location_name   = $location['name'];
+							$location_address = $this->format_address( $location['address'] );
+							$is_enabled      = isset( $location['enabled'] ) && $location['enabled'];
+							$current_cost    = isset( $location_costs[ $location_index ] ) ? $location_costs[ $location_index ] : '';
+							?>
+							<tr>
+								<td class="sort" width="1%"></td>
+								<td class="name">
+									<strong><?php echo esc_html( $location_name ); ?></strong>
+								</td>
+								<td class="address">
+									<?php echo esc_html( $location_address ); ?>
+								</td>
+								<td class="status">
+									<?php if ( $is_enabled ) : ?>
+										<span class="woocommerce-input-toggle woocommerce-input-toggle--enabled" aria-label="<?php esc_attr_e( 'Enabled', 'woocommerce-local-pickup-costs' ); ?>"><?php esc_html_e( 'Enabled', 'woocommerce-local-pickup-costs' ); ?></span>
+									<?php else : ?>
+										<span class="woocommerce-input-toggle woocommerce-input-toggle--disabled" aria-label="<?php esc_attr_e( 'Disabled', 'woocommerce-local-pickup-costs' ); ?>"><?php esc_html_e( 'Disabled', 'woocommerce-local-pickup-costs' ); ?></span>
+									<?php endif; ?>
+								</td>
+								<td class="cost">
+									<input 
+										type="text" 
+										name="wc_lpc_location_costs[<?php echo esc_attr( $location_index ); ?>]" 
+										value="<?php echo esc_attr( $current_cost ); ?>" 
+										placeholder="<?php esc_attr_e( 'Use global cost', 'woocommerce-local-pickup-costs' ); ?>"
+										class="input-text regular-input wc_input_price"
+									/>
+									<p class="description"><?php esc_html_e( 'Leave blank to use global cost. Set to 0 for free.', 'woocommerce-local-pickup-costs' ); ?></p>
+								</td>
+							</tr>
+							<?php
+						}
+						?>
+					</tbody>
+				</table>
 			</td>
 		</tr>
 		<?php
 	}
 
 	/**
-	 * Get all local pickup locations
+	 * Format address from location data array
 	 *
-	 * @return array Array of pickup locations.
+	 * @param array $address Address data.
+	 * @return string Formatted address string.
+	 */
+	private function format_address( $address ) {
+		if ( ! is_array( $address ) || empty( $address ) ) {
+			return __( 'No address', 'woocommerce-local-pickup-costs' );
+		}
+
+		$parts = array();
+
+		if ( ! empty( $address['address_1'] ) ) {
+			$parts[] = $address['address_1'];
+		}
+
+		$city_state = array();
+		if ( ! empty( $address['city'] ) ) {
+			$city_state[] = $address['city'];
+		}
+		if ( ! empty( $address['state'] ) ) {
+			$city_state[] = $address['state'];
+		}
+		if ( ! empty( $address['postcode'] ) ) {
+			$city_state[] = $address['postcode'];
+		}
+
+		if ( ! empty( $city_state ) ) {
+			$parts[] = implode( ', ', $city_state );
+		}
+
+		if ( ! empty( $address['country'] ) ) {
+			$country_name = WC()->countries->countries[ $address['country'] ] ?? $address['country'];
+			$parts[] = $country_name;
+		}
+
+		return ! empty( $parts ) ? implode( ', ', $parts ) : __( 'No address', 'woocommerce-local-pickup-costs' );
+	}
+
+	/**
+	 * Get all local pickup locations (including disabled ones)
+	 *
+	 * @return array Array of pickup locations with full data.
 	 */
 	private function get_local_pickup_locations() {
 		$locations = array();
@@ -182,18 +254,17 @@ class WC_LPC_Admin_Settings {
 
 		if ( is_array( $pickup_locations_data ) && ! empty( $pickup_locations_data ) ) {
 			foreach ( $pickup_locations_data as $index => $location_data ) {
-				// Only include enabled locations
-				if ( isset( $location_data['enabled'] ) && $location_data['enabled'] ) {
-					$location_name = isset( $location_data['name'] ) ? $location_data['name'] : sprintf( __( 'Location %s', 'woocommerce-local-pickup-costs' ), $index );
-					
-					$locations[] = array(
-						'location_id' => $index,
-						'index'       => $index,
-						'title'       => $location_name,
-						'address'     => isset( $location_data['address'] ) ? $location_data['address'] : array(),
-						'details'     => isset( $location_data['details'] ) ? $location_data['details'] : '',
-					);
-				}
+				// Include ALL locations (enabled and disabled)
+				$location_name = isset( $location_data['name'] ) ? $location_data['name'] : sprintf( __( 'Location %s', 'woocommerce-local-pickup-costs' ), $index );
+				
+				$locations[] = array(
+					'location_id' => $index,
+					'index'       => $index,
+					'name'        => $location_name,
+					'address'     => isset( $location_data['address'] ) ? $location_data['address'] : array(),
+					'details'     => isset( $location_data['details'] ) ? $location_data['details'] : '',
+					'enabled'     => isset( $location_data['enabled'] ) && $location_data['enabled'],
+				);
 			}
 		}
 
