@@ -5,6 +5,14 @@ All notable changes to the WooCommerce Local Pickup Costs plugin will be documen
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.15] - 2025-01-XX
+
+### Changed
+- Cleaned up and simplified `checkout-preselect.js`: Removed redundant code, fallback logic, and unused features
+- Removed duplicate retry logic and simplified event handling
+- Removed dropdown support (not used in Blocks checkout)
+- Code reduced from 206 lines to 114 lines while maintaining full functionality
+
 ## [1.3.14] - 2025-01-XX
 
 ### Fixed

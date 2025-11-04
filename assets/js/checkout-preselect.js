@@ -24,7 +24,6 @@
 			const shippingMethodContainer = $('.wc-block-checkout__shipping-method-container');
 			
 			if ( shippingMethodContainer.length === 0 ) {
-				// Blocks checkout not loaded yet, retry
 				return false;
 			}
 
@@ -52,14 +51,10 @@
 			// Check if already selected
 			if ( pickupOption.attr('aria-checked') === 'true' || 
 			     pickupOption.hasClass('wc-block-checkout__shipping-method-option--selected') ) {
-				// Already selected, proceed to location selection
 				return true;
 			}
 
 			// Click the Pickup option to select it
-			pickupOption.trigger('click');
-			
-			// Also try native click event
 			if ( pickupOption[0] ) {
 				pickupOption[0].click();
 			}
@@ -73,53 +68,20 @@
 		 * @param {string} locationId Location ID to select
 		 */
 		function selectSpecificLocation( locationId ) {
-			// Wait for location selection UI to appear
 			// Location inputs have values like "pickup_location:0", "pickup_location:1", etc.
-			// Construct the value string, ensuring locationId is treated as a string
 			const locationValue = 'pickup_location:' + String( locationId );
 			const locationInput = $('input[type="radio"][value="' + locationValue + '"]');
 			
-			if ( locationInput.length > 0 ) {
-				// Find the label wrapper that contains this input
-				// The label has class "wc-block-components-radio-control__option" and wraps the input
-				const locationLabel = locationInput.closest('label.wc-block-components-radio-control__option');
-				
-				if ( locationLabel.length > 0 ) {
-					// Click on the label wrapper to trigger all the proper class updates
-					locationLabel.trigger('click');
-					
-					// Also try native click event on the label
-					if ( locationLabel[0] ) {
-						locationLabel[0].click();
-					}
-					
-					// Also set the input as checked and trigger change for good measure
-					locationInput.prop('checked', true).trigger('change');
-					
-					// Dispatch native events on the input as well
-					if ( locationInput[0] ) {
-						locationInput[0].dispatchEvent(new Event('change', { bubbles: true }));
-					}
-					
-					return true;
-				} else {
-					// Fallback: if label not found, try clicking input directly
-					locationInput.prop('checked', true).trigger('change').trigger('click');
-					
-					if ( locationInput[0] ) {
-						locationInput[0].click();
-						locationInput[0].dispatchEvent(new Event('change', { bubbles: true }));
-					}
-					
-					return true;
-				}
+			if ( locationInput.length === 0 ) {
+				return false;
 			}
 
-			// Try alternative selector for dropdowns
-			const locationSelect = $('select[name*="pickup_location"], select[name*="local_pickup_instance"]');
+			// Find the label wrapper that contains this input
+			const locationLabel = locationInput.closest('label.wc-block-components-radio-control__option');
 			
-			if ( locationSelect.length > 0 ) {
-				locationSelect.val( locationId ).trigger('change');
+			if ( locationLabel.length > 0 && locationLabel[0] ) {
+				// Click on the label wrapper to trigger all the proper class updates
+				locationLabel[0].click();
 				return true;
 			}
 
@@ -134,12 +96,10 @@
 			const pickupSelected = selectBlocksPickupOption();
 			
 			if ( ! pickupSelected ) {
-				// Pickup option not found or not clicked yet, will retry
 				return;
 			}
 
 			// Wait for location selection UI to appear after Pickup is selected
-			// Use multiple attempts with increasing delays
 			let attempts = 0;
 			const maxAttempts = 10;
 			
@@ -149,8 +109,7 @@
 				const locationSelected = selectSpecificLocation( selectedLocation );
 				
 				if ( ! locationSelected && attempts < maxAttempts ) {
-					// Location not found yet, retry after delay
-					setTimeout( trySelectLocation, 200 * attempts ); // Exponential backoff
+					setTimeout( trySelectLocation, 200 * attempts );
 				}
 			}
 
@@ -160,44 +119,14 @@
 
 		// Initial attempt
 		selectPickupLocation();
-
-		// Retry with exponential backoff if initial attempt fails
-		let retryCount = 0;
-		const maxRetries = 5;
-		
-		function retrySelection() {
-			retryCount++;
-			
-			// Check if Pickup is already selected
-			const pickupOption = $('.wc-block-checkout__shipping-method-option').filter(function() {
-				return $(this).find('.wc-block-checkout__shipping-method-option-title').text().trim() === 'Pickup';
-			});
-			
-			if ( pickupOption.length > 0 && 
-			     ( pickupOption.attr('aria-checked') === 'true' || 
-			       pickupOption.hasClass('wc-block-checkout__shipping-method-option--selected') ) ) {
-				// Pickup is selected, try location selection
-				const locationSelected = selectSpecificLocation( selectedLocation );
-				if ( ! locationSelected && retryCount < maxRetries ) {
-					setTimeout( retrySelection, 500 * retryCount );
-				}
-			} else if ( retryCount < maxRetries ) {
-				// Pickup not selected yet, try again
-				setTimeout( retrySelection, 500 * retryCount );
-			}
-		}
-
-		// Start retry logic after initial delay
-		setTimeout( retrySelection, 1000 );
 	}
 
 	// Run on document ready
 	$( document ).ready( function() {
-		// Wait a bit for Blocks checkout to initialize
 		setTimeout( initCheckoutPreselect, 100 );
 	});
 
-	// Also listen for checkout updates (Blocks checkout may update dynamically)
+	// Also listen for checkout updates
 	$( document.body ).on( 'updated_checkout', function() {
 		setTimeout( initCheckoutPreselect, 100 );
 	});
