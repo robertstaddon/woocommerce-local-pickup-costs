@@ -5,6 +5,16 @@ All notable changes to the WooCommerce Local Pickup Costs plugin will be documen
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.14] - 2025-01-XX
+
+### Fixed
+- Fixed location selection for `pickup_location=0`: Now explicitly converts location ID to string to ensure location 0 is properly selected
+- Fixed label classes not updating when location is pre-selected: Now clicks on the label wrapper instead of just the input to trigger all React handlers and class updates
+- Location selection now properly applies `wc-block-components-radio-control__option-checked` and `wc-block-components-radio-control__option--checked-option-highlighted` classes
+
+### Changed
+- Location selection now uses `.closest('label.wc-block-components-radio-control__option')` to find and click the label wrapper for proper React component interaction
+
 ## [1.3.13] - 2025-01-XX
 
 ### Fixed

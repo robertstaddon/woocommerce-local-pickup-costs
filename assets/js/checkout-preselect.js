@@ -75,19 +75,44 @@
 		function selectSpecificLocation( locationId ) {
 			// Wait for location selection UI to appear
 			// Location inputs have values like "pickup_location:0", "pickup_location:1", etc.
-			const locationInput = $('input[type="radio"][value="pickup_location:' + locationId + '"]');
+			// Construct the value string, ensuring locationId is treated as a string
+			const locationValue = 'pickup_location:' + String( locationId );
+			const locationInput = $('input[type="radio"][value="' + locationValue + '"]');
 			
 			if ( locationInput.length > 0 ) {
-				// Check the radio button
-				locationInput.prop('checked', true).trigger('change').trigger('click');
+				// Find the label wrapper that contains this input
+				// The label has class "wc-block-components-radio-control__option" and wraps the input
+				const locationLabel = locationInput.closest('label.wc-block-components-radio-control__option');
 				
-				// Also try native events
-				if ( locationInput[0] ) {
-					locationInput[0].click();
-					locationInput[0].dispatchEvent(new Event('change', { bubbles: true }));
+				if ( locationLabel.length > 0 ) {
+					// Click on the label wrapper to trigger all the proper class updates
+					locationLabel.trigger('click');
+					
+					// Also try native click event on the label
+					if ( locationLabel[0] ) {
+						locationLabel[0].click();
+					}
+					
+					// Also set the input as checked and trigger change for good measure
+					locationInput.prop('checked', true).trigger('change');
+					
+					// Dispatch native events on the input as well
+					if ( locationInput[0] ) {
+						locationInput[0].dispatchEvent(new Event('change', { bubbles: true }));
+					}
+					
+					return true;
+				} else {
+					// Fallback: if label not found, try clicking input directly
+					locationInput.prop('checked', true).trigger('change').trigger('click');
+					
+					if ( locationInput[0] ) {
+						locationInput[0].click();
+						locationInput[0].dispatchEvent(new Event('change', { bubbles: true }));
+					}
+					
+					return true;
 				}
-				
-				return true;
 			}
 
 			// Try alternative selector for dropdowns
