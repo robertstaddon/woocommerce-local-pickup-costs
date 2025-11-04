@@ -5,6 +5,17 @@ All notable changes to the WooCommerce Local Pickup Costs plugin will be documen
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.17] - 2025-01-XX
+
+### Changed
+- Simplified `checkout-preselect.js`: Removed `waitForLocationUI()` function and retry logic
+- Location selection now uses a simple 100ms delay after pickup selection, assuming locations appear immediately
+- Code reduced from 157 lines to 100 lines while maintaining functionality
+
+### Technical
+- Simplified flow: pickup selection → 100ms delay → location selection
+- Removed complex retry mechanisms in favor of simple timeout
+
 ## [1.3.16] - 2025-01-XX
 
 ### Changed
