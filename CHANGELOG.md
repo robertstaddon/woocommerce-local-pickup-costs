@@ -5,6 +5,19 @@ All notable changes to the WooCommerce Local Pickup Costs plugin will be documen
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.13] - 2025-01-XX
+
+### Fixed
+- Fixed checkout pre-selection for WooCommerce Blocks checkout: "Pickup" option is now properly selected on page load when `pickup_location` URL parameter is present
+- Rewrote `checkout-preselect.js` to work exclusively with Blocks checkout structure (removed classic checkout support)
+- Added proper detection and interaction with Blocks checkout shipping method options (`role="radio"` divs)
+- Implemented retry logic with exponential backoff to handle asynchronous Blocks checkout loading
+- Location selection now correctly waits for location UI to appear after "Pickup" is selected
+
+### Changed
+- Checkout pre-selection script now targets Blocks checkout elements (`.wc-block-checkout__shipping-method-option`) instead of classic radio inputs
+- Uses both jQuery and native click events for maximum compatibility with Blocks checkout React components
+
 ## [1.3.12] - 2025-01-XX
 
 ### Fixed
