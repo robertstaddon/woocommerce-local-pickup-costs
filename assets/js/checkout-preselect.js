@@ -63,6 +63,40 @@
 		}
 
 		/**
+		 * Wait for location selection UI to appear after Pickup is selected
+		 *
+		 * @param {Function} callback Function to call when location UI is ready
+		 */
+		function waitForLocationUI( callback ) {
+			const locationValue = 'pickup_location:' + String( selectedLocation );
+			const locationInput = $('input[type="radio"][value="' + locationValue + '"]');
+			
+			if ( locationInput.length > 0 ) {
+				// Location UI is already available
+				callback();
+				return;
+			}
+
+			// Wait for location UI to appear (max 2 attempts)
+			let attempts = 0;
+			const maxAttempts = 2;
+			
+			function checkForLocationUI() {
+				attempts++;
+				const checkInput = $('input[type="radio"][value="' + locationValue + '"]');
+				
+				if ( checkInput.length > 0 ) {
+					callback();
+				} else if ( attempts < maxAttempts ) {
+					setTimeout( checkForLocationUI, 500 );
+				}
+			}
+
+			// Start checking after a short delay to allow UI to render
+			setTimeout( checkForLocationUI, 300 );
+		}
+
+		/**
 		 * Select specific pickup location
 		 *
 		 * @param {string} locationId Location ID to select
@@ -89,7 +123,7 @@
 		}
 
 		/**
-		 * Main function to select pickup and location with retry logic
+		 * Main function to select pickup and location
 		 */
 		function selectPickupLocation() {
 			// Try to select the Pickup option
@@ -99,22 +133,10 @@
 				return;
 			}
 
-			// Wait for location selection UI to appear after Pickup is selected
-			let attempts = 0;
-			const maxAttempts = 10;
-			
-			function trySelectLocation() {
-				attempts++;
-				
-				const locationSelected = selectSpecificLocation( selectedLocation );
-				
-				if ( ! locationSelected && attempts < maxAttempts ) {
-					setTimeout( trySelectLocation, 200 * attempts );
-				}
-			}
-
-			// Start trying to select location after a short delay
-			setTimeout( trySelectLocation, 300 );
+			// Wait for location selection UI to appear, then select location
+			waitForLocationUI( function() {
+				selectSpecificLocation( selectedLocation );
+			});
 		}
 
 		// Initial attempt
