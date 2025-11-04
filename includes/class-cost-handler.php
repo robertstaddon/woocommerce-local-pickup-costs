@@ -66,7 +66,11 @@ class WC_LPC_Cost_Handler {
         add_action( 'woocommerce_store_api_checkout_update_order_from_request', array( $this, 'apply_custom_pickup_cost' ), 10, 2 );
         
         // Hook to modify shipping rates before they're displayed in cart/checkout
-        add_filter( 'woocommerce_shipping_package_rates', array( $this, 'modify_pickup_rates_for_blocks' ), 100, 2 );
+        // Use woocommerce_package_rates (not woocommerce_shipping_package_rates) for Blocks compatibility
+        add_filter( 'woocommerce_package_rates', array( $this, 'modify_pickup_rates_for_blocks' ), 9999, 2 );
+        
+        // Fallback: also hook woocommerce_shipping_rate_cost to guard against other filters resetting costs
+        add_filter( 'woocommerce_shipping_rate_cost', array( $this, 'modify_shipping_rate_cost' ), 9999, 2 );
 
 		// Register Store API update callback to force recalculation on-demand from Checkout Blocks
 		add_action( 'woocommerce_blocks_loaded', array( $this, 'register_store_api_update_callback' ) );
@@ -77,7 +81,8 @@ class WC_LPC_Cost_Handler {
         }
 
         if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-            error_log( 'WC LPC - Cost Handler hooks registered: woocommerce_shipping_package_rates filter' );
+            error_log( 'WC LPC - Cost Handler hooks registered: woocommerce_package_rates filter (priority 9999)' );
+            error_log( 'WC LPC - Cost Handler hooks registered: woocommerce_shipping_rate_cost filter (priority 9999)' );
             error_log( 'WC LPC - Cost Handler hooks registered: woocommerce_store_api_checkout_update_order_from_request action' );
         }
     }
@@ -421,5 +426,52 @@ class WC_LPC_Cost_Handler {
 		}
 
 		return $rates;
+	}
+
+	/**
+	 * Modify shipping rate cost (fallback filter)
+	 *
+	 * This is a fallback filter that runs on individual rate costs to ensure
+	 * our overrides are applied even if other filters modify rates.
+	 *
+	 * @param float  $cost  Current shipping rate cost.
+	 * @param object $rate  Shipping rate object.
+	 * @return float Modified cost.
+	 */
+	public function modify_shipping_rate_cost( $cost, $rate ) {
+		// Only process pickup_location methods
+		if ( ! is_object( $rate ) || ! isset( $rate->method_id ) || 'pickup_location' !== $rate->method_id ) {
+			return $cost;
+		}
+
+		// Get saved location costs
+		$location_costs = get_option( 'wc_lpc_location_costs', array() );
+		if ( empty( $location_costs ) ) {
+			return $cost;
+		}
+
+		// Extract location index from rate ID (format: pickup_location:0, pickup_location:1, etc.)
+		$rate_id = isset( $rate->id ) ? $rate->id : '';
+		$rate_id_parts = explode( ':', $rate_id );
+		
+		if ( count( $rate_id_parts ) < 2 || ! is_numeric( $rate_id_parts[1] ) ) {
+			return $cost;
+		}
+
+		$location_index = intval( $rate_id_parts[1] );
+
+		// Check if we have a custom cost for this location
+		if ( ! isset( $location_costs[ $location_index ] ) || '' === $location_costs[ $location_index ] ) {
+			return $cost;
+		}
+
+		// Apply the custom cost
+		$custom_cost = floatval( $location_costs[ $location_index ] );
+
+		if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+			error_log( 'WC LPC Cost - modify_shipping_rate_cost applied: index=' . $location_index . ', cost=' . $custom_cost . ' (was ' . $cost . ')' );
+		}
+
+		return $custom_cost;
 	}
 }

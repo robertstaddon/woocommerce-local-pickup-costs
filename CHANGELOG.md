@@ -5,6 +5,18 @@ All notable changes to the WooCommerce Local Pickup Costs plugin will be documen
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.12] - 2025-01-XX
+
+### Fixed
+- Fixed shipping rate filter to use `woocommerce_package_rates` (not `woocommerce_shipping_package_rates`) for Blocks compatibility
+- Changed filter priority to 9999 to ensure our overrides run after other filters
+- Added fallback `woocommerce_shipping_rate_cost` filter at priority 9999 to guard against cost resets
+
+### Technical
+- Both filters now extract location index from rate ID format (`pickup_location:0` → index `0`)
+- Filters apply override costs from `wc_lpc_location_costs` option correctly
+- Empty string values use WooCommerce default cost; `0` forces free shipping
+
 ## [1.3.11] - 2025-01-XX
 
 ### Fixed
