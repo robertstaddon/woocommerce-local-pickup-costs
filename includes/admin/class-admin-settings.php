@@ -290,6 +290,11 @@ class WC_LPC_Admin_Settings {
 			return;
 		}
 
+		// Verify nonce
+		if ( ! isset( $_POST['_wpnonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ) ), 'woocommerce-settings' ) ) {
+			return;
+		}
+
 		// Get the location costs from POST data
 		// When form has name="wc_lpc_location_costs[0]", PHP creates $_POST['wc_lpc_location_costs'] as an array
 		if ( isset( $_POST['wc_lpc_location_costs'] ) && is_array( $_POST['wc_lpc_location_costs'] ) ) {

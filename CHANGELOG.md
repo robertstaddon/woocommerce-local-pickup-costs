@@ -5,6 +5,36 @@ All notable changes to the WooCommerce Local Pickup Costs plugin will be documen
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2025-01-XX
+
+### Removed
+- Removed all debugging code and diagnostic tools for production readiness
+- Deleted `lpc-probe.js` diagnostic script (no longer needed)
+- Removed all `WP_DEBUG` conditional logging statements (50+ debug log statements removed)
+- Removed console logging from `lpc-blocks.js` (removed `log()` function and all log calls)
+- Removed unused MutationObserver from `lpc-blocks.js`
+- Removed probe script enqueue from checkout handler
+
+### Security
+- Added nonce verification to admin settings save function to prevent CSRF attacks
+- All form submissions now properly verify `woocommerce-settings` nonce
+
+### Performance
+- Implemented static caching for `get_option()` calls to reduce database queries
+- Cached `wc_lpc_location_costs` and `pickup_location_pickup_locations` options per request
+- Optimized location name matching: Changed from O(n) loop to O(1) lookup array in `apply_custom_pickup_cost()`
+- Reduced database overhead during cart/checkout calculations
+
+### Changed
+- Production-ready codebase with all debugging removed
+- Cleaner, more efficient code execution
+- Improved performance on high-traffic sites
+
+### Technical
+- Static caching prevents redundant `get_option()` calls during the same request
+- Location name lookup array eliminates nested loops for better performance
+- All security best practices implemented
+
 ## [1.3.17] - 2025-01-XX
 
 ### Changed

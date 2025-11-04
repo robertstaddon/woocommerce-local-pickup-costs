@@ -176,17 +176,6 @@ class WC_LPC_Checkout_Handler {
 			WC_LPC_VERSION,
 			true
 		);
-
-		// Enqueue diagnostic probe only in debug environments
-		if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-			wp_enqueue_script(
-				'wc-lpc-probe',
-				WC_LPC_PLUGIN_URL . 'assets/js/lpc-probe.js',
-				array(),
-				WC_LPC_VERSION,
-				true
-			);
-		}
 	}
 }
 
