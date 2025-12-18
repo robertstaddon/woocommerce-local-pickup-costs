@@ -71,9 +71,6 @@ class WC_LPC_Cost_Handler {
 		// Hook to modify shipping rates before they're displayed in cart/checkout
 		// Use woocommerce_package_rates (not woocommerce_shipping_package_rates) for Blocks compatibility
 		add_filter( 'woocommerce_package_rates', array( $this, 'modify_pickup_rates_for_blocks' ), 9999, 2 );
-		
-		// Fallback: also hook woocommerce_shipping_rate_cost to guard against other filters resetting costs
-		add_filter( 'woocommerce_shipping_rate_cost', array( $this, 'modify_shipping_rate_cost' ), 9999, 2 );
 
 		// Register Store API update callback to force recalculation on-demand from Checkout Blocks
 		add_action( 'woocommerce_blocks_loaded', array( $this, 'register_store_api_update_callback' ) );
@@ -178,23 +175,24 @@ class WC_LPC_Cost_Handler {
 				continue;
 			}
 
-			// Check if we have a custom cost for this location
-			if ( ! isset( $location_costs[ $location_index ] ) || '' === $location_costs[ $location_index ] ) {
-				continue;
+			// Get location data
+			$location_data = $pickup_locations[ $location_index ];
+
+			// Calculate cost using shared method (applies filter hook)
+			$custom_cost = $this->calculate_pickup_location_cost( $location_index, $current_total, $location_data, $item );
+
+			// Only apply if we got a valid numeric value (not false)
+			if ( false !== $custom_cost ) {
+				// Update the item total
+				$item->set_total( $custom_cost );
+
+				// Update the order totals
+				$order->calculate_totals();
+
+				// Save location index as order meta for reference
+				$order->update_meta_data( 'wc_lpc_pickup_location_index', $location_index );
+				$order->update_meta_data( 'wc_lpc_original_pickup_cost', $current_total );
 			}
-
-			// Apply the custom cost
-			$custom_cost = floatval( $location_costs[ $location_index ] );
-
-			// Update the item total
-			$item->set_total( $custom_cost );
-
-			// Update the order totals
-			$order->calculate_totals();
-
-			// Save location index as order meta for reference
-			$order->update_meta_data( 'wc_lpc_pickup_location_index', $location_index );
-			$order->update_meta_data( 'wc_lpc_original_pickup_cost', $current_total );
 		}
 	}
 
@@ -296,61 +294,66 @@ class WC_LPC_Cost_Handler {
 				continue;
 			}
 
-			// Check if we have a custom cost for this location
-			if ( ! isset( $location_costs[ $location_index ] ) || '' === $location_costs[ $location_index ] ) {
-				continue;
+			// Get location data
+			$location_data = $pickup_locations[ $location_index ];
+
+			// Get original cost from rate
+			$original_cost = $rate->get_cost();
+
+			// Calculate cost using shared method (applies filter hook)
+			$custom_cost = $this->calculate_pickup_location_cost( $location_index, $original_cost, $location_data, $rate );
+
+			// Only apply if we got a valid numeric value (not false)
+			if ( false !== $custom_cost ) {
+				// Update the rate cost
+				$rate->set_cost( $custom_cost );
 			}
-
-			// Apply the custom cost
-			$custom_cost = floatval( $location_costs[ $location_index ] );
-
-			// Update the rate cost
-			$rate->set_cost( $custom_cost );
 		}
 
 		return $rates;
 	}
 
 	/**
-	 * Modify shipping rate cost (fallback filter)
+	 * Calculate pickup location cost with filter hook support
 	 *
-	 * This is a fallback filter that runs on individual rate costs to ensure
-	 * our overrides are applied even if other filters modify rates.
+	 * This method consolidates cost calculation logic and applies a filter hook
+	 * to allow developers to adjust pickup costs dynamically.
 	 *
-	 * @param float  $cost  Current shipping rate cost.
-	 * @param object $rate  Shipping rate object.
-	 * @return float Modified cost.
+	 * @param int    $location_index Location array index.
+	 * @param float  $original_cost  Original WooCommerce cost before override.
+	 * @param array  $location_data  Full location data array.
+	 * @param object $context        Context object (WC_Shipping_Rate for display or WC_Order_Item_Shipping for finalization).
+	 * @return float|false Modified cost, or false if override should be skipped.
 	 */
-	public function modify_shipping_rate_cost( $cost, $rate ) {
-		// Only process pickup_location methods
-		if ( ! is_object( $rate ) || ! isset( $rate->method_id ) || 'pickup_location' !== $rate->method_id ) {
-			return $cost;
-		}
-
+	private function calculate_pickup_location_cost( $location_index, $original_cost, $location_data, $context ) {
 		// Get saved location costs (cached)
 		$location_costs = self::get_location_costs();
-		if ( empty( $location_costs ) ) {
-			return $cost;
-		}
-
-		// Extract location index from rate ID (format: pickup_location:0, pickup_location:1, etc.)
-		$rate_id = isset( $rate->id ) ? $rate->id : '';
-		$rate_id_parts = explode( ':', $rate_id );
-		
-		if ( count( $rate_id_parts ) < 2 || ! is_numeric( $rate_id_parts[1] ) ) {
-			return $cost;
-		}
-
-		$location_index = intval( $rate_id_parts[1] );
 
 		// Check if we have a custom cost for this location
 		if ( ! isset( $location_costs[ $location_index ] ) || '' === $location_costs[ $location_index ] ) {
-			return $cost;
+			return false;
 		}
 
-		// Apply the custom cost
+		// Get the custom cost from settings
 		$custom_cost = floatval( $location_costs[ $location_index ] );
 
-		return $custom_cost;
+		/**
+		 * Filter pickup location cost before applying override
+		 *
+		 * @param float  $custom_cost    The custom cost from plugin settings.
+		 * @param int    $location_index The location array index.
+		 * @param array  $location_data  Full location data (name, address, enabled status, etc.).
+		 * @param float  $original_cost  Original WooCommerce cost before override.
+		 * @param object $context        Context object (WC_Shipping_Rate for display or WC_Order_Item_Shipping for finalization).
+		 */
+		$modified_cost = apply_filters( 'wc_lpc_pickup_location_cost', $custom_cost, $location_index, $location_data, $original_cost, $context );
+
+		// If filter returns false or null, skip override
+		if ( false === $modified_cost || null === $modified_cost ) {
+			return false;
+		}
+
+		// Ensure we return a valid numeric value
+		return floatval( $modified_cost );
 	}
 }

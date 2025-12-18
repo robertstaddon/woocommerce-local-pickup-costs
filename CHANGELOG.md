@@ -5,6 +5,27 @@ All notable changes to the WooCommerce Local Pickup Costs plugin will be documen
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0] - 2025-01-XX
+
+### Added
+- Added `wc_lpc_pickup_location_cost` filter hook to allow developers to dynamically adjust pickup location costs
+- Filter hook provides access to custom cost, location index, location data, original cost, and context object
+- Developers can return modified cost or `false`/`null` to skip override and use original WooCommerce cost
+
+### Changed
+- Refactored cost calculation logic into shared `calculate_pickup_location_cost()` method
+- Consolidated cost application logic for better maintainability
+- Both display (cart/checkout) and finalization (order) now use the same cost calculation method
+
+### Removed
+- Removed fallback `woocommerce_shipping_rate_cost` filter hook (no longer needed)
+- Removed `modify_shipping_rate_cost()` method (functionality consolidated into shared method)
+
+### Technical
+- Cost calculation now centralized in single method with filter hook support
+- Improved code organization and maintainability
+- Filter hook allows for dynamic pricing adjustments, conditional discounts, and custom business logic
+
 ## [1.4.0] - 2025-01-XX
 
 ### Removed

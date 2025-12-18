@@ -92,12 +92,60 @@ All inputs are sanitized and validated:
 
 ## Hooks
 
+### WooCommerce Hooks
+
 The plugin uses the following WooCommerce hooks:
 
 - `woocommerce_get_sections_shipping`: Add new tab to shipping settings
 - `woocommerce_get_settings_shipping`: Render settings page
 - `woocommerce_package_rates`: Modify shipping rates based on location costs
 - `woocommerce_settings_save_shipping`: Save location costs
+- `woocommerce_store_api_checkout_update_order_from_request`: Apply costs during order finalization
+
+### Plugin Filter Hooks
+
+#### `wc_lpc_pickup_location_cost`
+
+Filter hook to adjust pickup location costs dynamically. This hook allows developers to modify the cost before it's applied to shipping rates or order items.
+
+**Parameters:**
+- `$custom_cost` (float) - The custom cost from plugin settings
+- `$location_index` (int) - The location array index
+- `$location_data` (array) - Full location data (name, address, enabled status, etc.)
+- `$original_cost` (float) - Original WooCommerce cost before override
+- `$context` (object) - Context object (`WC_Shipping_Rate` for display or `WC_Order_Item_Shipping` for finalization)
+
+**Return Value:**
+- Return modified cost (float) to apply that cost
+- Return `false` or `null` to skip override and use original WooCommerce cost
+
+**Example Usage:**
+
+```php
+// Apply 10% discount to downtown location
+add_filter( 'wc_lpc_pickup_location_cost', function( $custom_cost, $location_index, $location_data, $original_cost, $context ) {
+    if ( $location_index === 0 && strpos( $location_data['name'], 'Downtown' ) !== false ) {
+        return $custom_cost * 0.9;
+    }
+    return $custom_cost;
+}, 10, 5 );
+
+// Skip override for specific location and use WooCommerce default
+add_filter( 'wc_lpc_pickup_location_cost', function( $custom_cost, $location_index, $location_data, $original_cost, $context ) {
+    if ( $location_index === 2 ) {
+        return false; // Skip override, use original WooCommerce cost
+    }
+    return $custom_cost;
+}, 10, 5 );
+
+// Apply dynamic pricing based on cart total
+add_filter( 'wc_lpc_pickup_location_cost', function( $custom_cost, $location_index, $location_data, $original_cost, $context ) {
+    if ( WC()->cart && WC()->cart->get_subtotal() > 100 ) {
+        return 0; // Free pickup for orders over $100
+    }
+    return $custom_cost;
+}, 10, 5 );
+```
 
 ## License
 
